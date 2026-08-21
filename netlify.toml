@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# Route /api/tasks -> Netlify Function (đặt TRƯỚC rule catch-all bên dưới)
+[[redirects]]
+  from = "/api/tasks"
+  to = "/.netlify/functions/tasks"
+  status = 200
+
+# SPA fallback - đảm bảo mọi route còn lại đều trả về index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
