@@ -90,6 +90,7 @@ export default function App() {
   const [activeGroup, setActiveGroup] = useState("ALL");
   const [activeStatus, setActiveStatus] = useState("ALL");
   const [filters, setFilters] = useState(emptyFilters);
+  const [showFilters, setShowFilters] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -318,6 +319,19 @@ export default function App() {
           background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
           padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
         }
+        .tpc-btn-filter-toggle {
+          display: inline-flex; align-items: center; gap: 6px; background: #fff;
+          border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
+          font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+        }
+        .tpc-btn-filter-toggle:hover { background: #F5F6F8; }
+        .tpc-filter-badge {
+          background: var(--blue); color: #fff; font-size: 10px; font-weight: 700;
+          min-width: 16px; height: 16px; border-radius: 999px; display: inline-flex;
+          align-items: center; justify-content: center; padding: 0 4px;
+        }
+        .tpc-filter-caret { font-size: 9px; color: var(--muted); margin-left: 2px; }
+
         .tpc-filter-group { display: flex; flex-direction: column; gap: 5px; }
         .tpc-filter-group label { font-size: 11px; color: var(--muted); font-weight: 600; }
         .tpc-input, .tpc-select {
@@ -416,6 +430,7 @@ export default function App() {
           .tpc-header { padding: 14px; flex-direction: column; align-items: flex-start; }
           .tpc-auth-box { width: 100%; }
           .tpc-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; }
+          .tpc-btn-filter-toggle { width: 100%; justify-content: space-between; padding: 8px 12px; }
           .tpc-filter-group { width: 100%; flex-direction: row; align-items: center; gap: 8px; }
           .tpc-filter-group label { width: 92px; flex-shrink: 0; }
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
@@ -507,19 +522,29 @@ export default function App() {
         </div>
 
         <div className="tpc-toolbar">
-          <div className="tpc-filter-group">
-            <label>Ngày giao</label>
-            <input type="date" className="tpc-input" value={filters.ngayGiao} onChange={(e) => setFilters((f) => ({ ...f, ngayGiao: e.target.value }))} />
-          </div>
-          <div className="tpc-filter-group">
-            <label>Hạn hoàn thành</label>
-            <input type="date" className="tpc-input" value={filters.ngayHtdk} onChange={(e) => setFilters((f) => ({ ...f, ngayHtdk: e.target.value }))} />
-          </div>
-          <div className="tpc-filter-group">
-            <label>Ngày hoàn thành</label>
-            <input type="date" className="tpc-input" value={filters.ngayHt} onChange={(e) => setFilters((f) => ({ ...f, ngayHt: e.target.value }))} />
-          </div>
-          {hasActiveFilters && <button className="tpc-btn-clear" onClick={clearFilters}>Xóa bộ lọc</button>}
+          <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
+            ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+            <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
+          </button>
+
+          {showFilters && (
+            <>
+              <div className="tpc-filter-group">
+                <label>Ngày giao</label>
+                <input type="date" className="tpc-input" value={filters.ngayGiao} onChange={(e) => setFilters((f) => ({ ...f, ngayGiao: e.target.value }))} />
+              </div>
+              <div className="tpc-filter-group">
+                <label>Hạn hoàn thành</label>
+                <input type="date" className="tpc-input" value={filters.ngayHtdk} onChange={(e) => setFilters((f) => ({ ...f, ngayHtdk: e.target.value }))} />
+              </div>
+              <div className="tpc-filter-group">
+                <label>Ngày hoàn thành</label>
+                <input type="date" className="tpc-input" value={filters.ngayHt} onChange={(e) => setFilters((f) => ({ ...f, ngayHt: e.target.value }))} />
+              </div>
+              {hasActiveFilters && <button className="tpc-btn-clear" onClick={clearFilters}>Xóa bộ lọc</button>}
+            </>
+          )}
+
           <div className="tpc-spacer" />
           <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
             ⬇ Xuất CSV
