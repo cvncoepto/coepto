@@ -7,10 +7,16 @@ thật qua **Netlify Identity** (hỗ trợ đăng nhập bằng Google), **phâ
 - **Giám sát** (role `giam_sat`): xem tất cả, thêm/sửa/xóa công việc cho mọi nhóm.
 - **Người dùng khác** (đã đăng nhập hoặc chưa): chỉ xem và tick hoàn thành công việc.
 - **Dữ liệu lưu thật**: mọi thay đổi (thêm/sửa/xóa/tick hoàn thành) được lưu vào
-  **Netlify Blobs** — tồn tại lâu dài, dùng chung cho mọi người truy cập site, không
-  mất khi tải lại trang.
-- **Xuất CSV**: nút "⬇ Xuất CSV" trong thanh công cụ xuất đúng danh sách công việc
-  đang được lọc/hiển thị ra file `.csv` (mở tốt bằng Excel, có dấu tiếng Việt).
+  **Netlify Blobs** — tồn tại lâu dài, dùng chung cho mọi người truy cập site.
+- **Xuất CSV**: nút "⬇ Xuất CSV" xuất đúng danh sách đang lọc/hiển thị ra `.csv`.
+- **Bộ lọc ẩn mặc định**: bấm nút "⚙ Bộ lọc" để mở ra 3 ô lọc theo ngày.
+
+> ⚠️ **Lưu ý kỹ thuật quan trọng**: `netlify/functions/tasks.js` dùng cú pháp Function
+> **V1 (Lambda-style: `event`/`context`)**, KHÔNG dùng V2 (`Request`/`Response`).
+> Lý do: chỉ V1 mới đọc được `context.clientContext.user` (thông tin đăng nhập +
+> role từ Netlify Identity). Nếu sau này chỉnh sửa file này, giữ nguyên cú pháp
+> `export const handler = async (event, context) => {...}` — đừng đổi sang
+> `export default async (req, context) => {...}` kẻo mất quyền đọc role.
 
 ---
 
@@ -22,24 +28,15 @@ npm install
 
 ## 2. Chạy thử local (cần Netlify CLI để API /api/tasks hoạt động)
 
-Chạy `npm run dev` (Vite thuần) sẽ **không** gọi được `/api/tasks` vì đó là Netlify
-Function — cần Netlify CLI để giả lập môi trường Netlify đầy đủ (cả Functions lẫn
-Blobs) ở local:
-
 ```bash
 npm install -g netlify-cli
 netlify link      # liên kết thư mục này với site đã tạo trên Netlify (chạy 1 lần)
 netlify dev
 ```
 
-Lệnh `netlify dev` sẽ tự chạy Vite + Netlify Functions + Blobs cùng lúc tại
-`http://localhost:8888`.
-
-> Nếu chỉ chạy `npm run dev`, app vẫn mở được nhưng sẽ hiện dữ liệu mẫu (demo) vì
-> không gọi được API — đây là hành vi dự phòng có chủ đích, không phải lỗi.
-
-Đăng nhập Netlify Identity (đặc biệt là nút Google) **chỉ hoạt động đầy đủ khi đã
-deploy lên Netlify** hoặc chạy qua `netlify dev` đã link với site thật.
+Lệnh `netlify dev` chạy Vite + Netlify Functions + Blobs cùng lúc tại
+`http://localhost:8888`. Đăng nhập Google chỉ hoạt động đầy đủ khi đã deploy lên
+Netlify hoặc chạy qua `netlify dev` đã link với site thật.
 
 ## 3. Build
 
@@ -49,15 +46,11 @@ npm run build
 
 ## 4. Deploy lên Netlify
 
-**Cách A — qua Git (khuyên dùng):**
-1. Đẩy toàn bộ thư mục này lên một repo GitHub/GitLab/Bitbucket.
-2. Vào [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import an
-   existing project** → chọn repo vừa tạo.
-3. Build command: `npm run build`, Publish directory: `dist` (đã cấu hình sẵn trong
-   `netlify.toml`, Netlify tự nhận đúng).
-4. Bấm **Deploy**.
+**Qua Git (khuyên dùng):** đẩy code lên GitHub → Netlify → **Add new site** →
+**Import an existing project** → chọn repo. Build command/publish directory đã có
+sẵn trong `netlify.toml`.
 
-**Cách B — qua Netlify CLI:**
+**Qua CLI:**
 ```bash
 netlify login
 netlify init
@@ -66,64 +59,83 @@ netlify deploy --prod
 
 ## 5. Bật Netlify Identity
 
-1. Vào site vừa deploy trên Netlify dashboard → **Site configuration** → **Identity**.
-2. Bấm **Enable Identity**.
-3. (Tùy chọn) Ở mục **Registration**, chọn **Invite only** nếu không muốn ai cũng tự
-   đăng ký được — phù hợp với công cụ nội bộ như thế này.
+1. Site trên Netlify dashboard → **Project configuration → Identity → Enable Identity**.
+2. (Khuyên dùng cho công cụ nội bộ) **Registration → Registration preferences** →
+   chọn **Invite only**.
 
 ## 6. Bật đăng nhập Google
 
-1. Trong **Identity** → **Settings and usage** → mục **External providers**.
-2. Bấm **Add provider** → chọn **Google**.
-3. Dùng **shared keys** của Netlify để test nhanh, hoặc tự tạo **Google OAuth Client
-   ID/Secret** riêng tại [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-   để dùng production lâu dài.
-4. Nút **"Log in with Google"** sẽ tự xuất hiện trong modal đăng nhập — không cần sửa
-   code.
+1. **Identity → Registration → External providers → Add provider → Google**.
+2. Dùng shared keys của Netlify để test nhanh, hoặc tự tạo Google OAuth Client
+   ID/Secret riêng tại [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   để hiện đúng tên app của bạn khi đăng nhập (không phải "Netlify Identity").
+   - Nếu tự tạo Client ID/Secret riêng: nhớ khai báo **Authorized redirect URI**
+     là `https://api.netlify.com/auth/done` trong Google Cloud Console, và thêm
+     domain site của bạn vào **Authorized JavaScript origins**. Thiếu bước này là
+     nguyên nhân phổ biến nhất khiến "Continue with Google" không hoạt động.
 
-## 7. Gán role "Giám sát" cho tài khoản
+## 7. Mời người dùng (nếu chọn Invite only)
 
-Role không thể tự gán từ phía người dùng — admin phải gán thủ công:
+**Identity → Users → Invite users** → nhập email Gmail của Giám sát + CHỨC/TÙNG/TRƯỜNG.
 
-1. Vào **Identity** → tab **Users** (người dùng cần đăng nhập ít nhất 1 lần trước để
-   xuất hiện trong danh sách).
-2. Bấm vào user đó → **Edit** → ô **Roles** → gõ `giam_sat` → lưu lại.
-3. Người dùng đó cần **đăng xuất và đăng nhập lại** để nhận role mới.
+## 8. Gán role "Giám sát"
 
-## 8. Netlify Blobs (lưu dữ liệu thật) — không cần cấu hình gì thêm
+1. Người dùng phải **đăng nhập vào app ít nhất 1 lần** trước để xuất hiện trong
+   **Identity → Users**.
+2. Chọn user đó → **Edit settings** → ô **Roles** → gõ `giam_sat` → lưu.
+3. Người đó cần **đăng xuất và đăng nhập lại** (không chỉ tải lại trang) để JWT
+   được cấp mới có chứa role vừa gán — role chỉ có hiệu lực từ lần đăng nhập tiếp
+   theo.
 
-Netlify Blobs được kích hoạt tự động cho mọi site đã deploy trên Netlify, Function
-`netlify/functions/tasks.js` sẽ tự tạo kho lưu trữ `tasks-store` khi được gọi lần đầu.
-Không cần tạo tài khoản dịch vụ ngoài, không cần API key.
+## 9. Netlify Blobs (lưu dữ liệu thật) — không cần cấu hình gì thêm
 
-- **GET** `/api/tasks` — đọc danh sách (công khai, không cần đăng nhập).
-- **POST** `/api/tasks` — ghi đè toàn bộ danh sách (chỉ Giám sát, server kiểm tra role
-  qua Netlify Identity JWT).
-- **PATCH** `/api/tasks` — tick/bỏ tick hoàn thành một công việc (mọi người dùng).
+Tự động kích hoạt cho mọi site trên Netlify. Function `tasks.js` tự tạo kho lưu trữ
+`tasks-store` khi được gọi lần đầu.
 
-## 9. Cấu trúc dự án
+- **GET** `/api/tasks` — đọc danh sách (công khai).
+- **POST** `/api/tasks` — ghi đè toàn bộ danh sách (chỉ Giám sát).
+- **PATCH** `/api/tasks` — tick/bỏ tick hoàn thành (mọi người dùng).
+
+## 10. Cấu trúc dự án
 
 ```
 netlify-task-app/
-├── index.html                       # HTML gốc, nạp Netlify Identity widget qua CDN
-├── netlify.toml                      # Build config + route /api/tasks + SPA fallback
+├── index.html
+├── netlify.toml
 ├── package.json
 ├── vite.config.js
-├── netlify/
-│   └── functions/
-│       └── tasks.js                  # API đọc/ghi công việc qua Netlify Blobs
+├── netlify/functions/tasks.js   # API — V1 Lambda-style (event, context)
 └── src/
-    ├── main.jsx                      # Entry point React
-    ├── App.jsx                       # Toàn bộ giao diện + logic ứng dụng
-    ├── identity.js                   # Wrapper cho window.netlifyIdentity
-    ├── api.js                        # Gọi /api/tasks kèm JWT xác thực
-    └── exportCsv.js                  # Xuất danh sách công việc ra .csv
+    ├── main.jsx
+    ├── App.jsx
+    ├── identity.js
+    ├── api.js
+    └── exportCsv.js
 ```
 
-## 10. Nâng cấp thêm (tùy chọn, báo lại nếu cần)
+## 11. Xử lý sự cố thường gặp
 
-- **Lịch sử thay đổi / audit log** — ghi lại ai sửa gì, khi nào.
-- **Thông báo** (email/Slack) khi có công việc quá hạn.
-- **Chuyển sang Supabase/FaunaDB** nếu cần truy vấn phức tạp hơn hoặc realtime
-  đồng bộ nhiều tab cùng lúc (Blobs phù hợp cho quy mô nhỏ-vừa, không có realtime
-  push tự động — người dùng cần tải lại trang để thấy thay đổi của người khác).
+**"No user found with that email, or password invalid" khi đăng nhập:**
+Đừng gõ email/password — bấm thẳng nút **"Continue with Google"**. Nếu vẫn không
+vào được và Registration đang là Invite only, kiểm tra email đó đã được mời trong
+**Identity → Users** chưa.
+
+**Đăng nhập được nhưng vẫn báo "Chỉ Giám sát mới có quyền...":**
+Đăng xuất hẳn rồi đăng nhập lại (không chỉ F5 tải lại trang) để lấy JWT mới có
+chứa role. Nếu vẫn lỗi, kiểm tra `netlify/functions/tasks.js` có đang dùng đúng
+cú pháp `export const handler = async (event, context) => {...}` (V1) hay không —
+đây là lỗi hay gặp nhất khi function bị đổi nhầm sang cú pháp V2.
+
+**"MissingBlobsEnvironmentError: The environment has not been configured to use
+Netlify Blobs" khi chạy `netlify dev`:**
+Vì function dùng cú pháp V1 ("Lambda compatibility mode"), Netlify Blobs không tự
+nhận diện được môi trường — bắt buộc phải gọi `connectLambda(event)` trước
+`getStore()`. Đây đã được sửa sẵn trong `tasks.js` phiên bản hiện tại; nếu lỗi này
+xuất hiện lại, kiểm tra 2 dòng đầu file có đủ:
+```js
+import { getStore, connectLambda } from "@netlify/blobs";
+// ...
+export const handler = async (event, context) => {
+  connectLambda(event);
+  const store = getStore(STORE_NAME);
+```
