@@ -125,3 +125,17 @@ vào được và Registration đang là Invite only, kiểm tra email đó đã
 chứa role. Nếu vẫn lỗi, kiểm tra `netlify/functions/tasks.js` có đang dùng đúng
 cú pháp `export const handler = async (event, context) => {...}` (V1) hay không —
 đây là lỗi hay gặp nhất khi function bị đổi nhầm sang cú pháp V2.
+
+**"MissingBlobsEnvironmentError: The environment has not been configured to use
+Netlify Blobs" khi chạy `netlify dev`:**
+Vì function dùng cú pháp V1 ("Lambda compatibility mode"), Netlify Blobs không tự
+nhận diện được môi trường — bắt buộc phải gọi `connectLambda(event)` trước
+`getStore()`. Đây đã được sửa sẵn trong `tasks.js` phiên bản hiện tại; nếu lỗi này
+xuất hiện lại, kiểm tra 2 dòng đầu file có đủ:
+```js
+import { getStore, connectLambda } from "@netlify/blobs";
+// ...
+export const handler = async (event, context) => {
+  connectLambda(event);
+  const store = getStore(STORE_NAME);
+```

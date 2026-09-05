@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 
 const STORE_NAME = "tasks-store";
 const KEY = "tasks";
@@ -17,11 +17,15 @@ function json(data, statusCode = 200) {
   };
 }
 
-// Lưu ý: dùng cú pháp Function V1 (event, context kiểu Lambda) thay vì V2
-// (Request/Response) — vì chỉ V1 mới đọc được context.clientContext.user
-// (thông tin đăng nhập Netlify Identity, bao gồm role). Xem:
-// https://docs.netlify.com/build/functions/functions-and-identity/
+// Lưu ý quan trọng (đừng xóa nếu sau này chỉnh sửa file này):
+// 1. Dùng cú pháp Function V1 (event, context kiểu Lambda) thay vì V2
+//    (Request/Response) — vì chỉ V1 mới đọc được context.clientContext.user
+//    (thông tin đăng nhập Netlify Identity, bao gồm role).
+// 2. Vì dùng V1 ("Lambda compatibility mode"), Netlify Blobs KHÔNG tự nhận diện
+//    môi trường — bắt buộc phải gọi connectLambda(event) trước getStore(),
+//    nếu không sẽ báo lỗi "MissingBlobsEnvironmentError".
 export const handler = async (event, context) => {
+  connectLambda(event);
   const store = getStore(STORE_NAME);
 
   // Đọc danh sách công việc — công khai, ai cũng xem được (không cần đăng nhập).
