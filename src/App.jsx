@@ -10,7 +10,6 @@ const GROUPS = [
 ];
 const groupLabel = (k) => GROUPS.find((g) => g.key === k)?.label || k;
 
-// Role được gán trong Netlify Identity (app_metadata.roles) cho phép quyền Giám sát.
 const SUPERVISOR_ROLE = "giam_sat";
 
 function isoOffset(days) {
@@ -81,6 +80,15 @@ export default function App() {
   const isSupervisor = roles.includes(SUPERVISOR_ROLE);
   const displayName = getDisplayName(user);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    setIsMobile(mq.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -102,8 +110,6 @@ export default function App() {
         const data = await fetchTasks();
         if (cancelled) return;
         if (data.length === 0) {
-          // Kho dữ liệu trống (lần đầu deploy) — hiển thị dữ liệu mẫu để demo,
-          // sẽ được lưu thật ngay khi Giám sát thêm/sửa/xóa công việc đầu tiên.
           setTasks(SEED_TASKS);
           setUsingDemoData(true);
         } else {
@@ -128,7 +134,11 @@ export default function App() {
     return tasks
       .filter((t) => {
         if (activeGroup !== "ALL" && t.group !== activeGroup) return false;
-        if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) return false;
+        if (activeStatus === "incomplete") {
+          if (getStatus(t) === "completed") return false;
+        } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
+          return false;
+        }
         if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
         if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
         if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
@@ -144,6 +154,7 @@ export default function App() {
 
   const groupScopedTasks = activeGroup === "ALL" ? tasks : tasks.filter((t) => t.group === activeGroup);
   const totalCount = groupScopedTasks.length;
+  const incompleteCount = groupScopedTasks.filter((t) => getStatus(t) !== "completed").length;
   const completedCount = groupScopedTasks.filter((t) => getStatus(t) === "completed").length;
   const overdueCount = groupScopedTasks.filter((t) => getStatus(t) === "overdue").length;
 
@@ -195,7 +206,6 @@ export default function App() {
   };
 
   const toggleComplete = async (t) => {
-    // Cập nhật lạc quan (optimistic) để UI phản hồi ngay, rồi đồng bộ với server.
     const optimistic = tasks.map((x) => (x.id === t.id ? { ...x, ngayHoanThanh: x.ngayHoanThanh ? "" : todayIso() } : x));
     setTasks(optimistic);
     try {
@@ -203,7 +213,7 @@ export default function App() {
       setTasks(saved);
       setUsingDemoData(false);
     } catch (e) {
-      setTasks(tasks); // rollback nếu lỗi
+      setTasks(tasks);
       setSaveError(e.message || "Cập nhật trạng thái thất bại.");
     }
   };
@@ -278,13 +288,13 @@ export default function App() {
           border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
         }
 
+        .tpc-body { padding: 22px 28px 32px; }
+
         .tpc-banner {
           padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px;
         }
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
-
-        .tpc-body { padding: 22px 28px 32px; }
 
         .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 11px; width: 100%; }
         .tpc-stat-card {
@@ -344,6 +354,11 @@ export default function App() {
           cursor: pointer; padding: 7px 4px; text-decoration: underline; text-underline-offset: 2px;
         }
         .tpc-spacer { flex: 1; }
+        .tpc-btn-secondary {
+          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
+          padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .tpc-btn-secondary:hover { background: #F5F6F8; }
         .tpc-btn-add {
           background: var(--navy); color: #fff; border: none; border-radius: 8px;
           padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -397,7 +412,7 @@ export default function App() {
         .tpc-form-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
         .tpc-form-row .tpc-input, .tpc-form-row .tpc-select { width: 100%; padding: 9px 10px; font-size: 13.5px; }
         .tpc-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-        .tpc-btn-secondary {
+        .tpc-btn-secondary-modal {
           background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
           padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
@@ -422,15 +437,29 @@ export default function App() {
             flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 6px; border: 1.5px solid var(--border); background: var(--surface);
           }
           .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-          .tpc-tab-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-tab-count { font-size: 7.5px; white-space: nowrap; }
+          .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
           .tpc-bar { margin-top: 5px; }
 
           .tpc-body { padding: 14px; }
-          .tpc-header { padding: 14px; flex-direction: column; align-items: flex-start; }
-          .tpc-auth-box { width: 100%; }
+          .tpc-header {
+            padding: 12px 14px; flex-direction: row; align-items: center; justify-content: space-between;
+            flex-wrap: nowrap; gap: 8px;
+          }
+          .tpc-title { font-size: 14px; }
+          .tpc-subtitle { font-size: 9.5px; }
+          .tpc-header-titles { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+          .tpc-header-titles .tpc-title,
+          .tpc-header-titles .tpc-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-auth-box { width: auto; flex-shrink: 0; }
+          .tpc-badge { padding: 5px 8px; font-size: 9px; gap: 5px; max-width: 110px; min-width: 0; }
+          .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+          .tpc-auth-box { flex-wrap: nowrap; min-width: 0; }
+          .tpc-btn-login, .tpc-btn-logout { padding: 6px 10px; font-size: 10px; }
           .tpc-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; }
-          .tpc-btn-filter-toggle { width: 100%; justify-content: space-between; padding: 8px 12px; }
+          .tpc-toolbar-toprow { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+          .tpc-toolbar-toprow .tpc-btn-filter-toggle,
+          .tpc-toolbar-toprow .tpc-btn-secondary { flex: 1; width: auto; justify-content: center; padding: 8px 10px; }
           .tpc-filter-group { width: 100%; flex-direction: row; align-items: center; gap: 8px; }
           .tpc-filter-group label { width: 92px; flex-shrink: 0; }
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
@@ -448,7 +477,7 @@ export default function App() {
       `}</style>
 
       <div className="tpc-header">
-        <div>
+        <div className="tpc-header-titles">
           <div className="tpc-title">Bảng phân công công việc</div>
           <div className="tpc-subtitle">Theo dõi tiến độ theo nhóm phụ trách</div>
         </div>
@@ -457,7 +486,7 @@ export default function App() {
             <>
               <div className="tpc-badge">
                 <span className="tpc-badge-dot" />
-                {displayName} {isSupervisor ? "— Giám sát" : "— Xem"}
+                <span className="tpc-badge-text">{displayName} {isSupervisor ? "— Giám sát" : "— Xem"}</span>
               </div>
               <button className="tpc-btn-logout" onClick={logout}>Đăng xuất</button>
             </>
@@ -478,10 +507,13 @@ export default function App() {
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
 
         <div className="tpc-stats">
-          <button className={`tpc-stat-card tpc-stat-total ${activeStatus === "ALL" ? "active" : ""}`} onClick={() => setActiveStatus("ALL")}>
+          <button
+            className={`tpc-stat-card tpc-stat-total ${(isMobile ? activeStatus === "incomplete" : activeStatus === "ALL") ? "active" : ""}`}
+            onClick={() => setActiveStatus(isMobile ? "incomplete" : "ALL")}
+          >
             <div>
               <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{totalCount}</div>
+              <div className="tpc-stat-value tpc-num">{isMobile ? incompleteCount : totalCount}</div>
             </div>
           </button>
           <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
@@ -501,14 +533,16 @@ export default function App() {
         <div className="tpc-tabs">
           <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
             <div className="tpc-tab-name">Tất cả nhóm</div>
-            <div className="tpc-tab-count">{tasks.length} công việc</div>
+            <div className="tpc-tab-count">
+              {isMobile ? tasks.filter((t) => getStatus(t) !== "completed").length : tasks.length} công việc
+            </div>
           </button>
           {GROUPS.map((g) => {
             const w = workload(g.key);
             return (
               <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
                 <div className="tpc-tab-name">{g.label}</div>
-                <div className="tpc-tab-count">{w.total} công việc</div>
+                <div className="tpc-tab-count">{isMobile ? w.o + w.p : w.total} công việc</div>
                 {w.total > 0 && (
                   <div className="tpc-bar">
                     <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
@@ -521,13 +555,19 @@ export default function App() {
           })}
         </div>
 
-        <div className="tpc-toolbar">
-          <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
-            ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
-            <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
-          </button>
-
-          {showFilters && (
+        {(() => {
+          const filterToggleBtn = (
+            <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
+              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+              <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
+            </button>
+          );
+          const csvBtn = (
+            <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
+              ⬇ Xuất CSV
+            </button>
+          );
+          const filterFields = showFilters && (
             <>
               <div className="tpc-filter-group">
                 <label>Ngày giao</label>
@@ -543,14 +583,29 @@ export default function App() {
               </div>
               {hasActiveFilters && <button className="tpc-btn-clear" onClick={clearFilters}>Xóa bộ lọc</button>}
             </>
-          )}
+          );
+          const addBtn = isSupervisor && <button className="tpc-btn-add" onClick={openAddForm} disabled={saving}>+ Thêm công việc</button>;
 
-          <div className="tpc-spacer" />
-          <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
-            ⬇ Xuất CSV
-          </button>
-          {isSupervisor && <button className="tpc-btn-add" onClick={openAddForm} disabled={saving}>+ Thêm công việc</button>}
-        </div>
+          return (
+            <div className="tpc-toolbar">
+              {isMobile ? (
+                <>
+                  <div className="tpc-toolbar-toprow">{filterToggleBtn}{csvBtn}</div>
+                  {filterFields}
+                  {addBtn}
+                </>
+              ) : (
+                <>
+                  {filterToggleBtn}
+                  {filterFields}
+                  <div className="tpc-spacer" />
+                  {csvBtn}
+                  {addBtn}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="tpc-table-wrap">
           {filteredTasks.length === 0 ? (
@@ -652,7 +707,7 @@ export default function App() {
             </div>
 
             <div className="tpc-modal-actions">
-              <button className="tpc-btn-secondary" onClick={closeForm}>Hủy</button>
+              <button className="tpc-btn-secondary-modal" onClick={closeForm}>Hủy</button>
               <button className="tpc-btn-primary" onClick={saveForm} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</button>
             </div>
           </div>
