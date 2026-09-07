@@ -12,20 +12,6 @@
   <body>
     <div id="root"></div>
 
-    <!-- Bắt buộc để xử lý link xác nhận email / mời người dùng / quên mật khẩu
-         khi Netlify Identity redirect về site kèm theo #invite_token, #recovery_token... -->
-    <script>
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.on("init", (user) => {
-          if (!user) {
-            window.netlifyIdentity.on("login", () => {
-              document.location.href = "/";
-            });
-          }
-        });
-      }
-    </script>
-
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
