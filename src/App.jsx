@@ -153,7 +153,6 @@ export default function App() {
   }, [tasks, activeGroup, activeStatus, filters]);
 
   const groupScopedTasks = activeGroup === "ALL" ? tasks : tasks.filter((t) => t.group === activeGroup);
-  const totalCount = groupScopedTasks.length;
   const incompleteCount = groupScopedTasks.filter((t) => getStatus(t) !== "completed").length;
   const completedCount = groupScopedTasks.filter((t) => getStatus(t) === "completed").length;
   const overdueCount = groupScopedTasks.filter((t) => getStatus(t) === "overdue").length;
@@ -508,12 +507,12 @@ export default function App() {
 
         <div className="tpc-stats">
           <button
-            className={`tpc-stat-card tpc-stat-total ${(isMobile ? activeStatus === "incomplete" : activeStatus === "ALL") ? "active" : ""}`}
-            onClick={() => setActiveStatus(isMobile ? "incomplete" : "ALL")}
+            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+            onClick={() => setActiveStatus("incomplete")}
           >
             <div>
               <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{isMobile ? incompleteCount : totalCount}</div>
+              <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
             </div>
           </button>
           <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
@@ -534,7 +533,7 @@ export default function App() {
           <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
             <div className="tpc-tab-name">Tất cả nhóm</div>
             <div className="tpc-tab-count">
-              {isMobile ? tasks.filter((t) => getStatus(t) !== "completed").length : tasks.length} công việc
+              {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
             </div>
           </button>
           {GROUPS.map((g) => {
@@ -542,7 +541,7 @@ export default function App() {
             return (
               <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
                 <div className="tpc-tab-name">{g.label}</div>
-                <div className="tpc-tab-count">{isMobile ? w.o + w.p : w.total} công việc</div>
+                <div className="tpc-tab-count">{w.o + w.p} công việc</div>
                 {w.total > 0 && (
                   <div className="tpc-bar">
                     <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
