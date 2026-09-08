@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { initIdentity, openLogin, logout, getRoles, getDisplayName } from "./identity";
 import { fetchTasks, replaceTasks, toggleTaskComplete } from "./api";
 import { exportTasksToCsv } from "./exportCsv";
+import { importTasksFromCsv } from "./importCsv";
 
 const GROUPS = [
   { key: "CHUC", label: "CHỨC" },
@@ -10,7 +11,6 @@ const GROUPS = [
 ];
 const groupLabel = (k) => GROUPS.find((g) => g.key === k)?.label || k;
 
-// Role được gán trong Netlify Identity (app_metadata.roles) cho phép quyền Giám sát.
 const SUPERVISOR_ROLE = "giam_sat";
 
 function isoOffset(days) {
@@ -46,14 +46,14 @@ const STATUS_META = {
 const genId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const SEED_TASKS = [
-  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "" },
-  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "" },
-  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8) },
-  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1) },
-  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "" },
-  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "" },
-  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "" },
-  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2) },
+  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
+  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
+  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
 ];
 
 const emptyForm = { group: "", task: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
@@ -81,6 +81,31 @@ export default function App() {
   const isSupervisor = roles.includes(SUPERVISOR_ROLE);
   const displayName = getDisplayName(user);
 
+  const VIEWER_NAME_KEY = "tpc-viewer-name";
+  const [viewerName, setViewerName] = useState(() => {
+    try {
+      return localStorage.getItem(VIEWER_NAME_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+  const chooseViewerName = (key) => {
+    setViewerName(key);
+    try {
+      if (key) localStorage.setItem(VIEWER_NAME_KEY, key);
+      else localStorage.removeItem(VIEWER_NAME_KEY);
+    } catch {}
+  };
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    setIsMobile(mq.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -95,6 +120,11 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
+  const isLockedViewer = !isSupervisor && !!viewerName;
+  useEffect(() => {
+    if (isLockedViewer) setActiveGroup(viewerName);
+  }, [isLockedViewer, viewerName]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -102,8 +132,6 @@ export default function App() {
         const data = await fetchTasks();
         if (cancelled) return;
         if (data.length === 0) {
-          // Kho dữ liệu trống (lần đầu deploy) — hiển thị dữ liệu mẫu để demo,
-          // sẽ được lưu thật ngay khi Giám sát thêm/sửa/xóa công việc đầu tiên.
           setTasks(SEED_TASKS);
           setUsingDemoData(true);
         } else {
@@ -128,7 +156,11 @@ export default function App() {
     return tasks
       .filter((t) => {
         if (activeGroup !== "ALL" && t.group !== activeGroup) return false;
-        if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) return false;
+        if (activeStatus === "incomplete") {
+          if (getStatus(t) === "completed") return false;
+        } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
+          return false;
+        }
         if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
         if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
         if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
@@ -143,7 +175,7 @@ export default function App() {
   }, [tasks, activeGroup, activeStatus, filters]);
 
   const groupScopedTasks = activeGroup === "ALL" ? tasks : tasks.filter((t) => t.group === activeGroup);
-  const totalCount = groupScopedTasks.length;
+  const incompleteCount = groupScopedTasks.filter((t) => getStatus(t) !== "completed").length;
   const completedCount = groupScopedTasks.filter((t) => getStatus(t) === "completed").length;
   const overdueCount = groupScopedTasks.filter((t) => getStatus(t) === "overdue").length;
 
@@ -194,16 +226,66 @@ export default function App() {
     }
   };
 
+  const csvFileInputRef = useRef(null);
+  const [importInfo, setImportInfo] = useState("");
+
+  const handleImportCsvClick = () => {
+    setSaveError("");
+    setImportInfo("");
+    csvFileInputRef.current?.click();
+  };
+
+  const handleImportCsvFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // cho phép chọn lại cùng file lần sau
+    if (!file) return;
+
+    const text = await file.text();
+    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: GROUPS, genId });
+
+    if (importedTasks.length === 0) {
+      setSaveError(errors[0] || "Không đọc được công việc nào hợp lệ từ file này.");
+      return;
+    }
+
+    const confirmMsg =
+      `Tìm thấy ${importedTasks.length} công việc trong file.\n` +
+      `Việc nhập sẽ THAY THẾ toàn bộ danh sách hiện tại (${tasks.length} công việc) bằng dữ liệu từ file.\n\n` +
+      `Bạn có chắc chắn muốn tiếp tục?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setSaving(true);
+    setSaveError("");
+    try {
+      const saved = await replaceTasks(importedTasks);
+      setTasks(saved);
+      setUsingDemoData(false);
+      if (errors.length > 0) {
+        setImportInfo(`Đã nhập ${importedTasks.length} công việc. Bỏ qua ${errors.length} dòng lỗi: ${errors.slice(0, 3).join(" ")}${errors.length > 3 ? "…" : ""}`);
+      } else {
+        setImportInfo(`Đã nhập thành công ${importedTasks.length} công việc từ file.`);
+      }
+    } catch (err) {
+      setSaveError(err.message || "Nhập dữ liệu thất bại.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   const toggleComplete = async (t) => {
-    // Cập nhật lạc quan (optimistic) để UI phản hồi ngay, rồi đồng bộ với server.
-    const optimistic = tasks.map((x) => (x.id === t.id ? { ...x, ngayHoanThanh: x.ngayHoanThanh ? "" : todayIso() } : x));
+    const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
+    const willComplete = !t.ngayHoanThanh;
+    const optimistic = tasks.map((x) =>
+      x.id === t.id ? { ...x, ngayHoanThanh: willComplete ? todayIso() : "", hoanThanhBoi: willComplete ? byName : "" } : x
+    );
     setTasks(optimistic);
     try {
-      const saved = await toggleTaskComplete(t.id, todayIso());
+      const saved = await toggleTaskComplete(t.id, todayIso(), byName);
       setTasks(saved);
       setUsingDemoData(false);
     } catch (e) {
-      setTasks(tasks); // rollback nếu lỗi
+      setTasks(tasks);
       setSaveError(e.message || "Cập nhật trạng thái thất bại.");
     }
   };
@@ -278,13 +360,13 @@ export default function App() {
           border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
         }
 
+        .tpc-body { padding: 22px 28px 32px; }
+
         .tpc-banner {
           padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px;
         }
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
-
-        .tpc-body { padding: 22px 28px 32px; }
 
         .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 11px; width: 100%; }
         .tpc-stat-card {
@@ -305,6 +387,27 @@ export default function App() {
         .tpc-stat-overdue .tpc-stat-label, .tpc-stat-overdue .tpc-stat-value { color: #fff; }
 
         .tpc-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .tpc-locked-group-label {
+          font-size: 13px; color: var(--muted); margin-bottom: 16px; padding: 10px 14px;
+          background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+        }
+        .tpc-locked-group-label strong { color: var(--ink); }
+
+        .tpc-landing { text-align: center; padding: 40px 16px 24px; }
+        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .tpc-landing-card {
+          min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
+          background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
+          color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
+        }
+        .tpc-landing-card:hover { transform: translateY(-2px); }
+        .tpc-landing-card-CHUC { background: #2E5AAC; border-color: #2E5AAC; color: #fff; }
+        .tpc-landing-card-CHUC:hover { background: #1F3F7A; border-color: #1F3F7A; box-shadow: 0 8px 20px rgba(46,90,172,0.35); }
+        .tpc-landing-card-TUNG { background: #C2410C; border-color: #C2410C; color: #fff; }
+        .tpc-landing-card-TUNG:hover { background: #9A3410; border-color: #9A3410; box-shadow: 0 8px 20px rgba(194,65,12,0.35); }
+        .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
+        .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
         .tpc-tab {
           flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
           padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
@@ -344,6 +447,11 @@ export default function App() {
           cursor: pointer; padding: 7px 4px; text-decoration: underline; text-underline-offset: 2px;
         }
         .tpc-spacer { flex: 1; }
+        .tpc-btn-secondary {
+          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
+          padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .tpc-btn-secondary:hover { background: #F5F6F8; }
         .tpc-btn-add {
           background: var(--navy); color: #fff; border: none; border-radius: 8px;
           padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -374,6 +482,8 @@ export default function App() {
         }
         .tpc-status-dot { width: 6px; height: 6px; border-radius: 50%; }
         .tpc-done-cell { display: flex; align-items: center; gap: 8px; }
+        .tpc-done-info { display: flex; flex-direction: column; line-height: 1.3; }
+        .tpc-done-by { font-size: 10px; color: var(--muted); }
         .tpc-checkbox { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
         .tpc-actions { display: flex; gap: 6px; }
         .tpc-icon-btn {
@@ -397,7 +507,7 @@ export default function App() {
         .tpc-form-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
         .tpc-form-row .tpc-input, .tpc-form-row .tpc-select { width: 100%; padding: 9px 10px; font-size: 13.5px; }
         .tpc-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-        .tpc-btn-secondary {
+        .tpc-btn-secondary-modal {
           background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
           padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
@@ -407,6 +517,9 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
+          .tpc-landing { padding: 24px 12px 16px; }
+          .tpc-landing-cards { flex-direction: column; align-items: stretch; }
+          .tpc-landing-card { min-width: 0; padding: 20px; }
           .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
           .tpc-stat-card {
             min-width: 0; min-height: 52px; padding: 8px 9px; border-radius: 8px;
@@ -422,15 +535,29 @@ export default function App() {
             flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 6px; border: 1.5px solid var(--border); background: var(--surface);
           }
           .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-          .tpc-tab-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-tab-count { font-size: 7.5px; white-space: nowrap; }
+          .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
           .tpc-bar { margin-top: 5px; }
 
           .tpc-body { padding: 14px; }
-          .tpc-header { padding: 14px; flex-direction: column; align-items: flex-start; }
-          .tpc-auth-box { width: 100%; }
+          .tpc-header {
+            padding: 12px 14px; flex-direction: row; align-items: center; justify-content: space-between;
+            flex-wrap: nowrap; gap: 8px;
+          }
+          .tpc-title { font-size: 14px; }
+          .tpc-subtitle { font-size: 9.5px; }
+          .tpc-header-titles { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+          .tpc-header-titles .tpc-title,
+          .tpc-header-titles .tpc-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-auth-box { width: auto; flex-shrink: 0; }
+          .tpc-badge { padding: 5px 8px; font-size: 9px; gap: 5px; max-width: 110px; min-width: 0; }
+          .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+          .tpc-auth-box { flex-wrap: nowrap; min-width: 0; }
+          .tpc-btn-login, .tpc-btn-logout { padding: 6px 10px; font-size: 10px; }
           .tpc-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; }
-          .tpc-btn-filter-toggle { width: 100%; justify-content: space-between; padding: 8px 12px; }
+          .tpc-toolbar-toprow { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+          .tpc-toolbar-toprow .tpc-btn-filter-toggle,
+          .tpc-toolbar-toprow .tpc-btn-secondary { flex: 1; width: auto; justify-content: center; padding: 8px 10px; }
           .tpc-filter-group { width: 100%; flex-direction: row; align-items: center; gap: 8px; }
           .tpc-filter-group label { width: 92px; flex-shrink: 0; }
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
@@ -448,26 +575,51 @@ export default function App() {
       `}</style>
 
       <div className="tpc-header">
-        <div>
+        <div className="tpc-header-titles">
           <div className="tpc-title">Bảng phân công công việc</div>
           <div className="tpc-subtitle">Theo dõi tiến độ theo nhóm phụ trách</div>
         </div>
         <div className="tpc-auth-box">
-          {!identityReady ? null : user ? (
+          {viewerName && !user ? (
             <>
               <div className="tpc-badge">
                 <span className="tpc-badge-dot" />
-                {displayName} {isSupervisor ? "— Giám sát" : "— Xem"}
+                <span className="tpc-badge-text">{groupLabel(viewerName)}</span>
+              </div>
+              <button className="tpc-btn-logout" onClick={() => chooseViewerName("")}>Đổi người dùng</button>
+            </>
+          ) : user ? (
+            <>
+              <div className="tpc-badge">
+                <span className="tpc-badge-dot" />
+                <span className="tpc-badge-text">{displayName} {isSupervisor ? "— Giám sát" : "— Xem"}</span>
               </div>
               <button className="tpc-btn-logout" onClick={logout}>Đăng xuất</button>
             </>
           ) : (
-            <button className="tpc-btn-login" onClick={openLogin}>Đăng nhập</button>
+            <button className="tpc-btn-login" onClick={openLogin}>Đăng nhập Giám sát</button>
           )}
         </div>
       </div>
 
       <div className="tpc-body">
+        {!user && !viewerName ? (
+          <div className="tpc-landing">
+            <p className="tpc-landing-sub">Bấm đúng tên của bạn để xem công việc của nhóm mình</p>
+            <div className="tpc-landing-cards">
+              {GROUPS.map((g) => (
+                <button
+                  key={g.key}
+                  className={`tpc-landing-card tpc-landing-card-${g.key}`}
+                  onClick={() => chooseViewerName(g.key)}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
         {loading && <div className="tpc-banner tpc-banner-info">Đang tải dữ liệu…</div>}
         {!loading && loadError && <div className="tpc-banner tpc-banner-error">{loadError}</div>}
         {!loading && usingDemoData && !loadError && (
@@ -476,12 +628,16 @@ export default function App() {
           </div>
         )}
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
+        {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
         <div className="tpc-stats">
-          <button className={`tpc-stat-card tpc-stat-total ${activeStatus === "ALL" ? "active" : ""}`} onClick={() => setActiveStatus("ALL")}>
+          <button
+            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+            onClick={() => setActiveStatus("incomplete")}
+          >
             <div>
               <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{totalCount}</div>
+              <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
             </div>
           </button>
           <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
@@ -498,36 +654,64 @@ export default function App() {
           </button>
         </div>
 
-        <div className="tpc-tabs">
-          <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-            <div className="tpc-tab-name">Tất cả nhóm</div>
-            <div className="tpc-tab-count">{tasks.length} công việc</div>
-          </button>
-          {GROUPS.map((g) => {
-            const w = workload(g.key);
-            return (
-              <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                <div className="tpc-tab-name">{g.label}</div>
-                <div className="tpc-tab-count">{w.total} công việc</div>
-                {w.total > 0 && (
-                  <div className="tpc-bar">
-                    <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                    <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                    <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
-                  </div>
-                )}
+        {isLockedViewer ? (
+          <div className="tpc-locked-group-label">
+            Nhóm: <strong>{groupLabel(viewerName)}</strong>
+          </div>
+        ) : (
+          <div className="tpc-tabs">
+            <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+              <div className="tpc-tab-name">Tất cả nhóm</div>
+              <div className="tpc-tab-count">
+                {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
+              </div>
+            </button>
+            {GROUPS.map((g) => {
+              const w = workload(g.key);
+              return (
+                <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                  <div className="tpc-tab-name">{g.label}</div>
+                  <div className="tpc-tab-count">{w.o + w.p} công việc</div>
+                  {w.total > 0 && (
+                    <div className="tpc-bar">
+                      <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
+                      <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
+                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {(() => {
+          const filterToggleBtn = (
+            <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
+              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+              <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
+            </button>
+          );
+          const csvBtn = (
+            <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
+              ⬇ Xuất CSV
+            </button>
+          );
+          const importBtn = isSupervisor && (
+            <>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={csvFileInputRef}
+                style={{ display: "none" }}
+                onChange={handleImportCsvFile}
+              />
+              <button className="tpc-btn-secondary" onClick={handleImportCsvClick} disabled={saving}>
+                ⬆ Nhập CSV
               </button>
-            );
-          })}
-        </div>
-
-        <div className="tpc-toolbar">
-          <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
-            ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
-            <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
-          </button>
-
-          {showFilters && (
+            </>
+          );
+          const filterFields = showFilters && (
             <>
               <div className="tpc-filter-group">
                 <label>Ngày giao</label>
@@ -543,14 +727,31 @@ export default function App() {
               </div>
               {hasActiveFilters && <button className="tpc-btn-clear" onClick={clearFilters}>Xóa bộ lọc</button>}
             </>
-          )}
+          );
+          const addBtn = isSupervisor && <button className="tpc-btn-add" onClick={openAddForm} disabled={saving}>+ Thêm công việc</button>;
 
-          <div className="tpc-spacer" />
-          <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
-            ⬇ Xuất CSV
-          </button>
-          {isSupervisor && <button className="tpc-btn-add" onClick={openAddForm} disabled={saving}>+ Thêm công việc</button>}
-        </div>
+          return (
+            <div className="tpc-toolbar">
+              {isMobile ? (
+                <>
+                  <div className="tpc-toolbar-toprow">{filterToggleBtn}{csvBtn}</div>
+                  {isSupervisor && <div className="tpc-toolbar-toprow">{importBtn}</div>}
+                  {filterFields}
+                  {addBtn}
+                </>
+              ) : (
+                <>
+                  {filterToggleBtn}
+                  {filterFields}
+                  <div className="tpc-spacer" />
+                  {csvBtn}
+                  {importBtn}
+                  {addBtn}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="tpc-table-wrap">
           {filteredTasks.length === 0 ? (
@@ -590,7 +791,10 @@ export default function App() {
                       <td>
                         <label className="tpc-done-cell">
                           <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
-                          <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                          <span className="tpc-done-info">
+                            <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                            {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+                          </span>
                         </label>
                       </td>
                       <td>
@@ -614,6 +818,8 @@ export default function App() {
             </table>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {showForm && isSupervisor && (
@@ -652,7 +858,7 @@ export default function App() {
             </div>
 
             <div className="tpc-modal-actions">
-              <button className="tpc-btn-secondary" onClick={closeForm}>Hủy</button>
+              <button className="tpc-btn-secondary-modal" onClick={closeForm}>Hủy</button>
               <button className="tpc-btn-primary" onClick={saveForm} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</button>
             </div>
           </div>

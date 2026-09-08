@@ -6,6 +6,7 @@ thật qua **Netlify Identity** (hỗ trợ đăng nhập bằng Google), **phâ
 
 - **Giám sát** (role `giam_sat`): xem tất cả, thêm/sửa/xóa công việc cho mọi nhóm.
 - **Người dùng khác** (đã đăng nhập hoặc chưa): chỉ xem và tick hoàn thành công việc.
+- **Truy vết trách nhiệm**: khi mở app lần đầu, người xem (CHỨC/TÙNG/TRƯỜNG) phải bấm chọn đúng tên nhóm mình trên màn hình chào — sau đó chỉ thấy công việc của riêng nhóm đó (không xem được nhóm khác). Mọi lượt tick hoàn thành đều ghi lại rõ "hoàn thành bởi ai", hiển thị trong bảng và khi xuất CSV. Lựa chọn tên được lưu trên trình duyệt (localStorage), có thể bấm "Đổi người dùng" để chọn lại.
 - **Dữ liệu lưu thật**: mọi thay đổi (thêm/sửa/xóa/tick hoàn thành) được lưu vào
   **Netlify Blobs** — tồn tại lâu dài, dùng chung cho mọi người truy cập site.
 - **Xuất CSV**: nút "⬇ Xuất CSV" xuất đúng danh sách đang lọc/hiển thị ra `.csv`.

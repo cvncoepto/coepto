@@ -32,12 +32,12 @@ export async function replaceTasks(tasks) {
   return res.json();
 }
 
-// Tick / bỏ tick hoàn thành — ai cũng gọi được.
-export async function toggleTaskComplete(id, todayIso) {
+// Tick / bỏ tick hoàn thành — ai cũng gọi được. "by" là tên người thực hiện, dùng để truy vết.
+export async function toggleTaskComplete(id, todayIso, by) {
   const res = await fetch("/api/tasks", {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
-    body: JSON.stringify({ id, today: todayIso }),
+    body: JSON.stringify({ id, today: todayIso, by }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
