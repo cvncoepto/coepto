@@ -394,19 +394,14 @@ export default function App() {
         .tpc-locked-group-label strong { color: var(--ink); }
 
         .tpc-landing { text-align: center; padding: 40px 16px 24px; }
-        .tpc-landing-title { font-family: 'Sora', sans-serif; font-size: 22px; color: var(--ink); margin: 0 0 6px; }
-        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
-        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
           min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
           background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
           color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
         }
         .tpc-landing-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(46,90,172,0.15); }
-        .tpc-landing-supervisor {
-          background: none; border: none; color: var(--blue); font-size: 12.5px; font-weight: 600;
-          cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-        }
         .tpc-tab {
           flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
           padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
@@ -604,7 +599,6 @@ export default function App() {
       <div className="tpc-body">
         {!user && !viewerName ? (
           <div className="tpc-landing">
-            <h2 className="tpc-landing-title">Bạn là ai?</h2>
             <p className="tpc-landing-sub">Bấm đúng tên của bạn để xem công việc của nhóm mình</p>
             <div className="tpc-landing-cards">
               {GROUPS.map((g) => (
@@ -613,7 +607,6 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <button className="tpc-landing-supervisor" onClick={openLogin}>Đăng nhập với vai trò Giám sát</button>
           </div>
         ) : (
           <>
