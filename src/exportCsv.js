@@ -10,13 +10,14 @@ function csvEscape(value) {
  * @param {(iso: string) => string} formatDate
  */
 export function exportTasksToCsv(tasks, groupLabel, getStatusMeta, formatDate) {
-  const headers = ["Công việc", "Nhóm", "Ngày giao", "Hạn hoàn thành", "Ngày hoàn thành", "Trạng thái"];
+  const headers = ["Công việc", "Nhóm", "Ngày giao", "Hạn hoàn thành", "Ngày hoàn thành", "Hoàn thành bởi", "Trạng thái"];
   const rows = tasks.map((t) => [
     t.task,
     groupLabel(t.group),
     formatDate(t.ngayGiao),
     formatDate(t.ngayHoanThanhDuKien),
     formatDate(t.ngayHoanThanh),
+    t.hoanThanhBoi || "—",
     getStatusMeta(t).label,
   ]);
 

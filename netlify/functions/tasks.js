@@ -65,9 +65,15 @@ export const handler = async (event, context) => {
     if (!body?.id) return json({ error: "Thiếu id công việc." }, 400);
 
     const tasks = (await store.get(KEY, { type: "json" })) || [];
-    const updated = tasks.map((t) =>
-      t.id === body.id ? { ...t, ngayHoanThanh: t.ngayHoanThanh ? "" : body.today } : t
-    );
+    const updated = tasks.map((t) => {
+      if (t.id !== body.id) return t;
+      const willComplete = !t.ngayHoanThanh;
+      return {
+        ...t,
+        ngayHoanThanh: willComplete ? body.today : "",
+        hoanThanhBoi: willComplete ? (body.by || "Không xác định") : "",
+      };
+    });
     await store.setJSON(KEY, updated);
     return json(updated);
   }

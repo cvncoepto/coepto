@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { initIdentity, openLogin, logout, getRoles, getDisplayName } from "./identity";
 import { fetchTasks, replaceTasks, toggleTaskComplete } from "./api";
 import { exportTasksToCsv } from "./exportCsv";
+import { importTasksFromCsv } from "./importCsv";
 
 const GROUPS = [
   { key: "CHUC", label: "CHỨC" },
@@ -45,14 +46,14 @@ const STATUS_META = {
 const genId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const SEED_TASKS = [
-  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "" },
-  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "" },
-  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8) },
-  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1) },
-  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "" },
-  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "" },
-  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "" },
-  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2) },
+  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
+  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
+  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
 ];
 
 const emptyForm = { group: "", task: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
@@ -80,6 +81,22 @@ export default function App() {
   const isSupervisor = roles.includes(SUPERVISOR_ROLE);
   const displayName = getDisplayName(user);
 
+  const VIEWER_NAME_KEY = "tpc-viewer-name";
+  const [viewerName, setViewerName] = useState(() => {
+    try {
+      return localStorage.getItem(VIEWER_NAME_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+  const chooseViewerName = (key) => {
+    setViewerName(key);
+    try {
+      if (key) localStorage.setItem(VIEWER_NAME_KEY, key);
+      else localStorage.removeItem(VIEWER_NAME_KEY);
+    } catch {}
+  };
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 720px)");
@@ -102,6 +119,11 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  const isLockedViewer = !isSupervisor && !!viewerName;
+  useEffect(() => {
+    if (isLockedViewer) setActiveGroup(viewerName);
+  }, [isLockedViewer, viewerName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,11 +226,62 @@ export default function App() {
     }
   };
 
+  const csvFileInputRef = useRef(null);
+  const [importInfo, setImportInfo] = useState("");
+
+  const handleImportCsvClick = () => {
+    setSaveError("");
+    setImportInfo("");
+    csvFileInputRef.current?.click();
+  };
+
+  const handleImportCsvFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // cho phép chọn lại cùng file lần sau
+    if (!file) return;
+
+    const text = await file.text();
+    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: GROUPS, genId });
+
+    if (importedTasks.length === 0) {
+      setSaveError(errors[0] || "Không đọc được công việc nào hợp lệ từ file này.");
+      return;
+    }
+
+    const confirmMsg =
+      `Tìm thấy ${importedTasks.length} công việc trong file.\n` +
+      `Việc nhập sẽ THAY THẾ toàn bộ danh sách hiện tại (${tasks.length} công việc) bằng dữ liệu từ file.\n\n` +
+      `Bạn có chắc chắn muốn tiếp tục?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setSaving(true);
+    setSaveError("");
+    try {
+      const saved = await replaceTasks(importedTasks);
+      setTasks(saved);
+      setUsingDemoData(false);
+      if (errors.length > 0) {
+        setImportInfo(`Đã nhập ${importedTasks.length} công việc. Bỏ qua ${errors.length} dòng lỗi: ${errors.slice(0, 3).join(" ")}${errors.length > 3 ? "…" : ""}`);
+      } else {
+        setImportInfo(`Đã nhập thành công ${importedTasks.length} công việc từ file.`);
+      }
+    } catch (err) {
+      setSaveError(err.message || "Nhập dữ liệu thất bại.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   const toggleComplete = async (t) => {
-    const optimistic = tasks.map((x) => (x.id === t.id ? { ...x, ngayHoanThanh: x.ngayHoanThanh ? "" : todayIso() } : x));
+    const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
+    const willComplete = !t.ngayHoanThanh;
+    const optimistic = tasks.map((x) =>
+      x.id === t.id ? { ...x, ngayHoanThanh: willComplete ? todayIso() : "", hoanThanhBoi: willComplete ? byName : "" } : x
+    );
     setTasks(optimistic);
     try {
-      const saved = await toggleTaskComplete(t.id, todayIso());
+      const saved = await toggleTaskComplete(t.id, todayIso(), byName);
       setTasks(saved);
       setUsingDemoData(false);
     } catch (e) {
@@ -314,6 +387,26 @@ export default function App() {
         .tpc-stat-overdue .tpc-stat-label, .tpc-stat-overdue .tpc-stat-value { color: #fff; }
 
         .tpc-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .tpc-locked-group-label {
+          font-size: 13px; color: var(--muted); margin-bottom: 16px; padding: 10px 14px;
+          background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+        }
+        .tpc-locked-group-label strong { color: var(--ink); }
+
+        .tpc-landing { text-align: center; padding: 40px 16px 24px; }
+        .tpc-landing-title { font-family: 'Sora', sans-serif; font-size: 22px; color: var(--ink); margin: 0 0 6px; }
+        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
+        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+        .tpc-landing-card {
+          min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
+          background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
+          color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
+        }
+        .tpc-landing-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(46,90,172,0.15); }
+        .tpc-landing-supervisor {
+          background: none; border: none; color: var(--blue); font-size: 12.5px; font-weight: 600;
+          cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+        }
         .tpc-tab {
           flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
           padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
@@ -388,6 +481,8 @@ export default function App() {
         }
         .tpc-status-dot { width: 6px; height: 6px; border-radius: 50%; }
         .tpc-done-cell { display: flex; align-items: center; gap: 8px; }
+        .tpc-done-info { display: flex; flex-direction: column; line-height: 1.3; }
+        .tpc-done-by { font-size: 10px; color: var(--muted); }
         .tpc-checkbox { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
         .tpc-actions { display: flex; gap: 6px; }
         .tpc-icon-btn {
@@ -421,6 +516,9 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
+          .tpc-landing { padding: 24px 12px 16px; }
+          .tpc-landing-cards { flex-direction: column; align-items: stretch; }
+          .tpc-landing-card { min-width: 0; padding: 20px; }
           .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
           .tpc-stat-card {
             min-width: 0; min-height: 52px; padding: 8px 9px; border-radius: 8px;
@@ -481,7 +579,15 @@ export default function App() {
           <div className="tpc-subtitle">Theo dõi tiến độ theo nhóm phụ trách</div>
         </div>
         <div className="tpc-auth-box">
-          {!identityReady ? null : user ? (
+          {viewerName && !user ? (
+            <>
+              <div className="tpc-badge">
+                <span className="tpc-badge-dot" />
+                <span className="tpc-badge-text">{groupLabel(viewerName)}</span>
+              </div>
+              <button className="tpc-btn-logout" onClick={() => chooseViewerName("")}>Đổi người dùng</button>
+            </>
+          ) : user ? (
             <>
               <div className="tpc-badge">
                 <span className="tpc-badge-dot" />
@@ -490,12 +596,27 @@ export default function App() {
               <button className="tpc-btn-logout" onClick={logout}>Đăng xuất</button>
             </>
           ) : (
-            <button className="tpc-btn-login" onClick={openLogin}>Đăng nhập</button>
+            <button className="tpc-btn-login" onClick={openLogin}>Đăng nhập Giám sát</button>
           )}
         </div>
       </div>
 
       <div className="tpc-body">
+        {!user && !viewerName ? (
+          <div className="tpc-landing">
+            <h2 className="tpc-landing-title">Bạn là ai?</h2>
+            <p className="tpc-landing-sub">Bấm đúng tên của bạn để xem công việc của nhóm mình</p>
+            <div className="tpc-landing-cards">
+              {GROUPS.map((g) => (
+                <button key={g.key} className="tpc-landing-card" onClick={() => chooseViewerName(g.key)}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            <button className="tpc-landing-supervisor" onClick={openLogin}>Đăng nhập với vai trò Giám sát</button>
+          </div>
+        ) : (
+          <>
         {loading && <div className="tpc-banner tpc-banner-info">Đang tải dữ liệu…</div>}
         {!loading && loadError && <div className="tpc-banner tpc-banner-error">{loadError}</div>}
         {!loading && usingDemoData && !loadError && (
@@ -504,6 +625,7 @@ export default function App() {
           </div>
         )}
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
+        {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
         <div className="tpc-stats">
           <button
@@ -529,30 +651,36 @@ export default function App() {
           </button>
         </div>
 
-        <div className="tpc-tabs">
-          <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-            <div className="tpc-tab-name">Tất cả nhóm</div>
-            <div className="tpc-tab-count">
-              {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
-            </div>
-          </button>
-          {GROUPS.map((g) => {
-            const w = workload(g.key);
-            return (
-              <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                <div className="tpc-tab-name">{g.label}</div>
-                <div className="tpc-tab-count">{w.o + w.p} công việc</div>
-                {w.total > 0 && (
-                  <div className="tpc-bar">
-                    <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                    <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                    <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {isLockedViewer ? (
+          <div className="tpc-locked-group-label">
+            Nhóm: <strong>{groupLabel(viewerName)}</strong>
+          </div>
+        ) : (
+          <div className="tpc-tabs">
+            <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+              <div className="tpc-tab-name">Tất cả nhóm</div>
+              <div className="tpc-tab-count">
+                {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
+              </div>
+            </button>
+            {GROUPS.map((g) => {
+              const w = workload(g.key);
+              return (
+                <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                  <div className="tpc-tab-name">{g.label}</div>
+                  <div className="tpc-tab-count">{w.o + w.p} công việc</div>
+                  {w.total > 0 && (
+                    <div className="tpc-bar">
+                      <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
+                      <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
+                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {(() => {
           const filterToggleBtn = (
@@ -565,6 +693,20 @@ export default function App() {
             <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
               ⬇ Xuất CSV
             </button>
+          );
+          const importBtn = isSupervisor && (
+            <>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={csvFileInputRef}
+                style={{ display: "none" }}
+                onChange={handleImportCsvFile}
+              />
+              <button className="tpc-btn-secondary" onClick={handleImportCsvClick} disabled={saving}>
+                ⬆ Nhập CSV
+              </button>
+            </>
           );
           const filterFields = showFilters && (
             <>
@@ -590,6 +732,7 @@ export default function App() {
               {isMobile ? (
                 <>
                   <div className="tpc-toolbar-toprow">{filterToggleBtn}{csvBtn}</div>
+                  {isSupervisor && <div className="tpc-toolbar-toprow">{importBtn}</div>}
                   {filterFields}
                   {addBtn}
                 </>
@@ -599,6 +742,7 @@ export default function App() {
                   {filterFields}
                   <div className="tpc-spacer" />
                   {csvBtn}
+                  {importBtn}
                   {addBtn}
                 </>
               )}
@@ -644,7 +788,10 @@ export default function App() {
                       <td>
                         <label className="tpc-done-cell">
                           <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
-                          <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                          <span className="tpc-done-info">
+                            <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                            {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+                          </span>
                         </label>
                       </td>
                       <td>
@@ -668,6 +815,8 @@ export default function App() {
             </table>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {showForm && isSupervisor && (
