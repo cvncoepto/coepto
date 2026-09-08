@@ -401,7 +401,13 @@ export default function App() {
           background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
           color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
         }
-        .tpc-landing-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(46,90,172,0.15); }
+        .tpc-landing-card:hover { transform: translateY(-2px); }
+        .tpc-landing-card-CHUC { background: #2E5AAC; border-color: #2E5AAC; color: #fff; }
+        .tpc-landing-card-CHUC:hover { background: #1F3F7A; border-color: #1F3F7A; box-shadow: 0 8px 20px rgba(46,90,172,0.35); }
+        .tpc-landing-card-TUNG { background: #C2410C; border-color: #C2410C; color: #fff; }
+        .tpc-landing-card-TUNG:hover { background: #9A3410; border-color: #9A3410; box-shadow: 0 8px 20px rgba(194,65,12,0.35); }
+        .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
+        .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
         .tpc-tab {
           flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
           padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
@@ -602,7 +608,11 @@ export default function App() {
             <p className="tpc-landing-sub">Bấm đúng tên của bạn để xem công việc của nhóm mình</p>
             <div className="tpc-landing-cards">
               {GROUPS.map((g) => (
-                <button key={g.key} className="tpc-landing-card" onClick={() => chooseViewerName(g.key)}>
+                <button
+                  key={g.key}
+                  className={`tpc-landing-card tpc-landing-card-${g.key}`}
+                  onClick={() => chooseViewerName(g.key)}
+                >
                   {g.label}
                 </button>
               ))}
