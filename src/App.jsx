@@ -119,6 +119,18 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [sortField, setSortField] = useState("ngayGiao"); // "ngayGiao" | "task" | "ngayHoanThanhDuKien"
+  const [sortDir, setSortDir] = useState("desc"); // "asc" | "desc"
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
 
   const isLockedViewer = !isSupervisor && !!viewerName;
   useEffect(() => {
@@ -152,27 +164,53 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((t) => {
-        if (activeGroup !== "ALL" && t.group !== activeGroup) return false;
-        if (activeStatus === "incomplete") {
-          if (getStatus(t) === "completed") return false;
-        } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
-          return false;
-        }
-        if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
-        if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
-        if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        const aDone = getStatus(a) === "completed" ? 1 : 0;
-        const bDone = getStatus(b) === "completed" ? 1 : 0;
-        if (aDone !== bDone) return aDone - bDone;
-        return a.ngayGiao < b.ngayGiao ? 1 : -1;
-      });
+  const baseFiltered = useMemo(() => {
+    return tasks.filter((t) => {
+      if (activeGroup !== "ALL" && t.group !== activeGroup) return false;
+      if (activeStatus === "incomplete") {
+        if (getStatus(t) === "completed") return false;
+      } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
+        return false;
+      }
+      if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
+      if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
+      if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
+      return true;
+    });
   }, [tasks, activeGroup, activeStatus, filters]);
+
+  const compareBySort = (a, b) => {
+    let cmp = 0;
+    if (sortField === "task") {
+      cmp = a.task.localeCompare(b.task, "vi");
+    } else if (sortField === "ngayHoanThanhDuKien") {
+      cmp = a.ngayHoanThanhDuKien < b.ngayHoanThanhDuKien ? -1 : a.ngayHoanThanhDuKien > b.ngayHoanThanhDuKien ? 1 : 0;
+    } else {
+      cmp = a.ngayGiao < b.ngayGiao ? -1 : a.ngayGiao > b.ngayGiao ? 1 : 0;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  };
+
+  // Công việc CHƯA hoàn thành: quá hạn luôn lên đầu, trong từng nhóm sắp xếp theo sortField/sortDir.
+  const incompleteTasks = useMemo(() => {
+    return baseFiltered
+      .filter((t) => getStatus(t) !== "completed")
+      .sort((a, b) => {
+        const tierA = getStatus(a) === "overdue" ? 0 : 1;
+        const tierB = getStatus(b) === "overdue" ? 0 : 1;
+        if (tierA !== tierB) return tierA - tierB;
+        return compareBySort(a, b);
+      });
+  }, [baseFiltered, sortField, sortDir]);
+
+  // Công việc ĐÃ hoàn thành: thu gọn riêng, mở ra khi cần.
+  const completedTasks = useMemo(() => {
+    return baseFiltered
+      .filter((t) => getStatus(t) === "completed")
+      .sort((a, b) => (a.ngayHoanThanh < b.ngayHoanThanh ? 1 : -1));
+  }, [baseFiltered]);
+
+  const filteredTasks = useMemo(() => [...incompleteTasks, ...completedTasks], [incompleteTasks, completedTasks]);
 
   const groupScopedTasks = activeGroup === "ALL" ? tasks : tasks.filter((t) => t.group === activeGroup);
   const incompleteCount = groupScopedTasks.filter((t) => getStatus(t) !== "completed").length;
@@ -301,6 +339,42 @@ export default function App() {
     return { total: gt.length, c, o, p };
   };
 
+  const renderTaskRow = (t) => {
+    const st = getStatus(t);
+    const meta = STATUS_META[st];
+    return (
+      <tr key={t.id}>
+        <td className="tpc-task-name tpc-col-task">{t.task}</td>
+        <td><span className="tpc-group-pill">{groupLabel(t.group)}</span></td>
+        <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
+        <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
+        <td>
+          <label className="tpc-done-cell">
+            <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
+            <span className="tpc-done-info">
+              <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+              {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+            </span>
+          </label>
+        </td>
+        <td>
+          <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
+            <span className="tpc-status-dot" style={{ background: meta.color }} />
+            {meta.label}
+          </span>
+        </td>
+        {isSupervisor && (
+          <td>
+            <div className="tpc-actions">
+              <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
+              <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
+
   return (
     <div className="tpc-app">
       <style>{`
@@ -326,7 +400,9 @@ export default function App() {
           font-family: 'Inter', -apple-system, sans-serif;
           background: var(--bg);
           color: var(--ink);
-          min-height: 100%;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
           border-radius: 12px;
           overflow: hidden;
         }
@@ -360,7 +436,14 @@ export default function App() {
           border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
         }
 
-        .tpc-body { padding: 22px 28px 32px; }
+        .tpc-body {
+          padding: 22px 28px 32px;
+          flex: 1 1 auto;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
 
         .tpc-banner {
           padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px;
@@ -393,7 +476,7 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
 
-        .tpc-landing { text-align: center; padding: 40px 16px 24px; }
+        .tpc-landing { text-align: center; padding: 40px 16px 24px; overflow-y: auto; }
         .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
@@ -458,7 +541,14 @@ export default function App() {
         }
         .tpc-btn-add:hover { background: var(--navy-2); }
 
-        .tpc-table-wrap { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .tpc-table-wrap {
+          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+          flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch;
+        }
+        .tpc-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+        .tpc-table-wrap::-webkit-scrollbar-track { background: #F3F5F9; }
+        .tpc-table-wrap::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
+        .tpc-table-wrap::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
         table.tpc-table { width: 100%; border-collapse: collapse; }
         .tpc-table col.tpc-col-task { width: 100%; }
         .tpc-table th, .tpc-table td { white-space: nowrap; }
@@ -466,8 +556,15 @@ export default function App() {
         .tpc-table thead th {
           text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
           color: var(--muted); font-weight: 700; padding: 10px 12px; border-bottom: 1.5px solid var(--border);
-          background: #FAFBFC;
+          background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
+        .tpc-th-sortable { cursor: pointer; user-select: none; }
+        .tpc-th-sortable:hover { color: var(--navy); }
+        .tpc-sort-arrow { color: var(--blue); }
+        .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
+        .tpc-completed-toggle-row:hover { background: #F0F2F5; }
+        .tpc-completed-toggle-row td { padding: 10px 12px; }
+        .tpc-completed-toggle { font-size: 12px; font-weight: 700; color: var(--muted); }
         .tpc-table tbody td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
@@ -563,7 +660,7 @@ export default function App() {
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
           .tpc-btn-clear { align-self: flex-start; padding: 2px 4px; }
           .tpc-btn-add { width: 100%; padding: 8px 14px; }
-          .tpc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .tpc-table-wrap { overflow: scroll; -webkit-overflow-scrolling: touch; }
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
         }
@@ -674,9 +771,9 @@ export default function App() {
                   <div className="tpc-tab-count">{w.o + w.p} công việc</div>
                   {w.total > 0 && (
                     <div className="tpc-bar">
+                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
                       <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
                       <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
                     </div>
                   )}
                 </button>
@@ -754,7 +851,7 @@ export default function App() {
         })()}
 
         <div className="tpc-table-wrap">
-          {filteredTasks.length === 0 ? (
+          {incompleteTasks.length === 0 && completedTasks.length === 0 ? (
             <div className="tpc-empty">Không có công việc nào khớp với bộ lọc hiện tại.</div>
           ) : (
             <table className="tpc-table">
@@ -769,51 +866,32 @@ export default function App() {
               </colgroup>
               <thead>
                 <tr>
-                  <th className="tpc-col-task">Công việc</th>
+                  <th className="tpc-col-task tpc-th-sortable" onClick={() => toggleSort("task")}>
+                    Công việc{sortField === "task" && <span className="tpc-sort-arrow">{sortDir === "asc" ? " ▲" : " ▼"}</span>}
+                  </th>
                   <th>Nhóm</th>
                   <th>Ngày giao</th>
-                  <th>Hạn hoàn thành</th>
+                  <th className="tpc-th-sortable" onClick={() => toggleSort("ngayHoanThanhDuKien")}>
+                    Hạn hoàn thành{sortField === "ngayHoanThanhDuKien" && <span className="tpc-sort-arrow">{sortDir === "asc" ? " ▲" : " ▼"}</span>}
+                  </th>
                   <th>Hoàn thành</th>
                   <th>Trạng thái</th>
                   {isSupervisor && <th></th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((t) => {
-                  const st = getStatus(t);
-                  const meta = STATUS_META[st];
-                  return (
-                    <tr key={t.id}>
-                      <td className="tpc-task-name tpc-col-task">{t.task}</td>
-                      <td><span className="tpc-group-pill">{groupLabel(t.group)}</span></td>
-                      <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
-                      <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
-                      <td>
-                        <label className="tpc-done-cell">
-                          <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
-                          <span className="tpc-done-info">
-                            <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
-                            {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
-                          </span>
-                        </label>
-                      </td>
-                      <td>
-                        <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
-                          <span className="tpc-status-dot" style={{ background: meta.color }} />
-                          {meta.label}
-                        </span>
-                      </td>
-                      {isSupervisor && (
-                        <td>
-                          <div className="tpc-actions">
-                            <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
-                            <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
+                {incompleteTasks.map((t) => renderTaskRow(t))}
+
+                {completedTasks.length > 0 && (
+                  <tr className="tpc-completed-toggle-row" onClick={() => setShowCompleted((v) => !v)}>
+                    <td colSpan={isSupervisor ? 7 : 6}>
+                      <span className="tpc-completed-toggle">
+                        {showCompleted ? "▲" : "▼"} Đã hoàn thành ({completedTasks.length})
+                      </span>
+                    </td>
+                  </tr>
+                )}
+                {showCompleted && completedTasks.map((t) => renderTaskRow(t))}
               </tbody>
             </table>
           )}
