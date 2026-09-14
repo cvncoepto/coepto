@@ -378,6 +378,11 @@ export default function App() {
   return (
     <div className="tpc-app">
       <style>{`
+        html, body, #root {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+        }
         .tpc-app {
           width: 100%;
           max-width: 100%;
@@ -882,7 +887,7 @@ export default function App() {
               <tbody>
                 {incompleteTasks.map((t) => renderTaskRow(t))}
 
-                {completedTasks.length > 0 && (
+                {completedTasks.length > 0 && activeStatus !== "completed" && (
                   <tr className="tpc-completed-toggle-row" onClick={() => setShowCompleted((v) => !v)}>
                     <td colSpan={isSupervisor ? 7 : 6}>
                       <span className="tpc-completed-toggle">
@@ -891,7 +896,7 @@ export default function App() {
                     </td>
                   </tr>
                 )}
-                {showCompleted && completedTasks.map((t) => renderTaskRow(t))}
+                {(showCompleted || activeStatus === "completed") && completedTasks.map((t) => renderTaskRow(t))}
               </tbody>
             </table>
           )}
