@@ -632,9 +632,9 @@ export default function App() {
           .tpc-stat-label { font-size: 10px; }
           .tpc-stat-value { font-size: 20px; margin-top: 2px; }
 
-          .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; overflow-x: auto; }
+          .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
           .tpc-tab {
-            flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 6px; border: 1.5px solid var(--border); background: var(--surface);
+            flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 4px; border: 1.5px solid var(--border); background: var(--surface);
           }
           .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
           .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
