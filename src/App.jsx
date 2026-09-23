@@ -489,50 +489,59 @@ export default function App() {
 
         .tpc-landing { text-align: center; padding: 48px 16px 24px; overflow-y: auto; }
         .tpc-landing-sub { font-size: 13.5px; color: var(--muted); margin: 0 0 28px; }
-        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .tpc-landing-cards {
+          display: flex; max-width: 620px; margin: 0 auto;
+          border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+          box-shadow: 0 1px 3px rgba(16,24,40,0.06);
+        }
         .tpc-landing-card {
-          min-width: 176px; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-          box-shadow: 0 1px 3px rgba(16,24,40,0.05); text-align: left;
-          cursor: pointer; transition: transform .12s, box-shadow .15s;
+          flex: 1; min-width: 0; position: relative;
+          padding: 0; border: none; border-right: 1px solid rgba(16,24,40,0.08);
+          text-align: left; cursor: pointer; transition: filter .12s;
           display: flex; flex-direction: column;
         }
-        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,24,40,0.12); }
+        .tpc-landing-card:last-child { border-right: none; }
+        .tpc-landing-card:hover { filter: brightness(1.04); }
         .tpc-landing-card-header {
           font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: #fff;
           padding: 18px 22px 8px;
         }
-        .tpc-landing-card-body { font-size: 12px; padding: 2px 22px 18px; }
-        .tpc-landing-card-CHUC { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 62%, #fff 100%); }
-        .tpc-landing-card-CHUC .tpc-landing-card-body { color: #2E5AAC; }
-        .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 62%, #fff 100%); }
-        .tpc-landing-card-TUNG .tpc-landing-card-body { color: #C2410C; }
-        .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 62%, #fff 100%); }
-        .tpc-landing-card-TRUONG .tpc-landing-card-body { color: #0E7490; }
-
-        .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; width: 100%; flex-shrink: 0; }
-        .tpc-stat-card {
-          width: 100%; min-width: 132px;
+        .tpc-landing-card-body { font-size: 12px; padding: 2px 22px 18px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+        .tpc-landing-card-CHUC { background: linear-gradient(90deg, #2E5AAC 0%, #EAF0FC 78%, #fff 100%); }
+        .tpc-landing-card-TUNG { background: linear-gradient(90deg, #C2410C 0%, #FBEAE0 78%, #fff 100%); }
+        .tpc-landing-card-TRUONG { background: linear-gradient(90deg, #0E7490 0%, #E1F1F5 78%, #fff 100%); }
+        
+        .tpc-stats {
+          display: flex; margin-bottom: 14px; flex-shrink: 0;
           border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
-          transition: box-shadow .12s, transform .12s;
           box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-stat-card:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
-        .tpc-stat-card.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
+        .tpc-stat-card {
+          flex: 1; min-width: 0; position: relative;
+          border: none; border-right: 1px solid rgba(16,24,40,0.08); border-radius: 0;
+          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          transition: filter .12s;
+        }
+        .tpc-stat-card:last-child { border-right: none; }
+        .tpc-stat-card:hover { filter: brightness(1.04); }
+        .tpc-stat-card.active::before {
+          content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff;
+        }
         .tpc-stat-header { padding: 10px 14px 6px; color: #fff; font-size: 12.5px; font-weight: 700; }
         .tpc-stat-body { padding: 2px 14px 14px; }
-        .tpc-stat-value { font-size: 25px; font-weight: 700; line-height: 1.15; }
-        .tpc-stat-total { background: linear-gradient(180deg, var(--gold) 0%, var(--gold-bg) 68%, #fff 100%); }
-        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-total.active { background: linear-gradient(180deg, var(--gold-ink) 0%, var(--gold-bg) 68%, #fff 100%); }
-        .tpc-stat-completed { background: linear-gradient(180deg, var(--green) 0%, var(--green-bg) 68%, #fff 100%); }
-        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-completed.active { background: linear-gradient(180deg, #0E5C3F 0%, var(--green-bg) 68%, #fff 100%); }
-        .tpc-stat-overdue { background: linear-gradient(180deg, var(--red) 0%, var(--red-bg) 68%, #fff 100%); }
-        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
-        .tpc-stat-overdue.active { background: linear-gradient(180deg, #96271D 0%, var(--red-bg) 68%, #fff 100%); }
+        .tpc-stat-value { font-size: 25px; font-weight: 700; line-height: 1.15; color: #fff; }
+        .tpc-stat-total { background: linear-gradient(90deg, var(--gold) 0%, var(--gold-bg) 78%, #fff 100%); }
+        .tpc-stat-total.active { background: linear-gradient(90deg, var(--gold-ink) 0%, var(--gold-bg) 78%, #fff 100%); }
+        .tpc-stat-completed { background: linear-gradient(90deg, var(--green) 0%, var(--green-bg) 78%, #fff 100%); }
+        .tpc-stat-completed.active { background: linear-gradient(90deg, #0E5C3F 0%, var(--green-bg) 78%, #fff 100%); }
+        .tpc-stat-overdue { background: linear-gradient(90deg, var(--red) 0%, var(--red-bg) 78%, #fff 100%); }
+        .tpc-stat-overdue.active { background: linear-gradient(90deg, #96271D 0%, var(--red-bg) 78%, #fff 100%); }
 
-        .tpc-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; flex-shrink: 0; }
+        .tpc-tabs {
+          display: flex; margin-bottom: 20px; flex-shrink: 0;
+          border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+        }
         .tpc-locked-group-label {
           font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
           background: var(--surface); border: 1px solid var(--border); border-radius: 10px; flex-shrink: 0;
@@ -540,23 +549,27 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          flex: 1; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-          padding: 0; cursor: pointer; min-width: 132px; text-align: left; display: flex; flex-direction: column;
-          transition: box-shadow .12s, transform .12s; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          flex: 1; min-width: 0; position: relative;
+          border: none; border-right: 1px solid rgba(16,24,40,0.08); border-radius: 0;
+          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          transition: filter .12s;
         }
-        .tpc-tab:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
-        .tpc-tab.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
+        .tpc-tab:last-child { border-right: none; }
+        .tpc-tab:hover { filter: brightness(1.04); }
+        .tpc-tab.active::before {
+          content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff;
+        }
         .tpc-tab-header { padding: 10px 14px 6px; color: #fff; font-size: 13px; font-weight: 700; }
         .tpc-tab-body { padding: 2px 14px 12px; }
-        .tpc-tab-ALL { background: linear-gradient(180deg, #8891A5 0%, #F1F2F5 65%, #fff 100%); }
-        .tpc-tab-ALL.active { background: linear-gradient(180deg, var(--navy) 0%, var(--canvas) 65%, #fff 100%); }
-        .tpc-tab-CHUC { background: linear-gradient(180deg, #90A8D6 0%, #EAF0FC 65%, #fff 100%); }
-        .tpc-tab-CHUC.active { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 65%, #fff 100%); }
-        .tpc-tab-TUNG { background: linear-gradient(180deg, #E0966E 0%, #FBEAE0 65%, #fff 100%); }
-        .tpc-tab-TUNG.active { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 65%, #fff 100%); }
-        .tpc-tab-TRUONG { background: linear-gradient(180deg, #74B7C6 0%, #E1F1F5 65%, #fff 100%); }
-        .tpc-tab-TRUONG.active { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 65%, #fff 100%); }
-        .tpc-tab-count { font-size: 12px; color: var(--muted); }
+        .tpc-tab-ALL { background: linear-gradient(90deg, #8891A5 0%, #F1F2F5 78%, #fff 100%); }
+        .tpc-tab-ALL.active { background: linear-gradient(90deg, var(--navy) 0%, var(--canvas) 78%, #fff 100%); }
+        .tpc-tab-CHUC { background: linear-gradient(90deg, #90A8D6 0%, #EAF0FC 78%, #fff 100%); }
+        .tpc-tab-CHUC.active { background: linear-gradient(90deg, #2E5AAC 0%, #EAF0FC 78%, #fff 100%); }
+        .tpc-tab-TUNG { background: linear-gradient(90deg, #E0966E 0%, #FBEAE0 78%, #fff 100%); }
+        .tpc-tab-TUNG.active { background: linear-gradient(90deg, #C2410C 0%, #FBEAE0 78%, #fff 100%); }
+        .tpc-tab-TRUONG { background: linear-gradient(90deg, #74B7C6 0%, #E1F1F5 78%, #fff 100%); }
+        .tpc-tab-TRUONG.active { background: linear-gradient(90deg, #0E7490 0%, #E1F1F5 78%, #fff 100%); }
+        .tpc-tab-count { font-size: 12px; color: rgba(255,255,255,0.85); }
         .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
         .tpc-bar span { height: 100%; }
 
@@ -699,7 +712,7 @@ export default function App() {
           .tpc-stat-body { padding: 7px 8px 9px; text-align: center; }
           .tpc-stat-value { font-size: 19px; }
 
-          .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
+          .tpc-tabs { margin-bottom: 12px; }
           .tpc-tab { min-width: 0; flex: 1 1 0; }
           .tpc-tab-header { padding: 6px 5px; font-size: 9px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .tpc-tab-body { padding: 6px 5px 7px; text-align: center; }
@@ -734,8 +747,9 @@ export default function App() {
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
           .tpc-landing { padding: 24px 12px 16px; }
-          .tpc-landing-cards { flex-direction: column; align-items: stretch; }
-          .tpc-landing-card { min-width: 0; }
+          .tpc-landing-cards { flex-direction: column; max-width: 320px; }
+          .tpc-landing-card { border-right: none; border-bottom: 1px solid rgba(16,24,40,0.08); }
+          .tpc-landing-card:last-child { border-bottom: none; }
           .tpc-landing-card-header { padding: 16px 20px 6px; }
           .tpc-landing-card-body { padding: 2px 20px 16px; }
         }
@@ -786,7 +800,7 @@ export default function App() {
                   onClick={() => chooseViewerName(g.key)}
                 >
                   <div className="tpc-landing-card-header">{g.label}</div>
-                  <div className="tpc-landing-card-body">Xem công việc của nhóm</div>
+                  <div className="tpc-landing-card-body">Xem công việc</div>
                 </button>
               ))}
             </div>
