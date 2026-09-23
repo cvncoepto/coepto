@@ -365,7 +365,7 @@ export default function App() {
               {t.task}
             </span>
           </td>
-          <td><span className="tpc-group-pill">{groupLabel(t.group)}</span></td>
+          <td><span className={`tpc-group-pill tpc-group-pill-${t.group}`}>{groupLabel(t.group)}</span></td>
           <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
           <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
           <td>
@@ -419,18 +419,20 @@ export default function App() {
           --navy: #16223F;
           --navy-2: #1F2F55;
           --blue: #2E5AAC;
-          --ink: #101828;
-          --muted: #667085;
-          --border: #E4E7EC;
+          --ink: #13181F;
+          --muted: #5B6472;
+          --border: #E3E5EA;
           --bg: #F3F5F9;
+          --canvas: #EDF0F5;
           --surface: #FFFFFF;
-          --green: #12805C;
+          --green: #157A56;
           --green-bg: #E7F6EF;
-          --red: #C4302B;
+          --red: #C13A2E;
           --red-bg: #FDECEC;
           --amber: #946200;
           --amber-bg: #FBF0DD;
-          --gold: #D8B65A;
+          --gold: #C99A3E;
+          --gold-ink: #8A6A22;
           --gold-bg: #FAF1DC;
           font-family: 'Inter', -apple-system, sans-serif;
           background: var(--bg);
@@ -489,7 +491,7 @@ export default function App() {
         .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
+          min-width: 140px; padding: 28px 24px; border: 1px solid var(--border); border-radius: 14px;
           background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
           color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
         }
@@ -501,55 +503,60 @@ export default function App() {
         .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
         .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
 
-        .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 11px; width: 100%; flex-shrink: 0; }
+        .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; width: 100%; flex-shrink: 0; }
         .tpc-stat-card {
-          width: 100%; min-width: 132px; min-height: 56px; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-          transition: transform .1s, box-shadow .15s; text-align: center; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; gap: 9px;
-          border-left: 3px solid transparent;
+          width: 100%; min-width: 132px; min-height: 64px; background: var(--surface);
+          border: 1px solid var(--border); border-left: 3px solid transparent; border-radius: 10px;
+          padding: 12px 16px; cursor: pointer;
+          transition: border-color .12s, box-shadow .12s; text-align: left; display: flex; flex-direction: column;
+          justify-content: center; gap: 3px;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
-        .tpc-stat-card:hover { transform: translateY(-1px); }
-        .tpc-stat-card.active { box-shadow: 0 0 0 3px rgba(16,24,40,0.18); }
-        .tpc-stat-label {
-          font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9;
-        }
-        .tpc-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; line-height: 1; }
-        .tpc-stat-total { background: var(--gold); border-left: none; }
-        .tpc-stat-total .tpc-stat-label, .tpc-stat-total .tpc-stat-value { color: #4A3A0E; }
-        .tpc-stat-completed { background: var(--green); border-left: none; }
-        .tpc-stat-completed .tpc-stat-label, .tpc-stat-completed .tpc-stat-value { color: #fff; }
-        .tpc-stat-overdue { background: var(--red); border-left: none; }
-        .tpc-stat-overdue .tpc-stat-label, .tpc-stat-overdue .tpc-stat-value { color: #fff; }
+        .tpc-stat-card:hover { box-shadow: 0 2px 8px rgba(16,24,40,0.07); }
+        .tpc-stat-card.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor inset; }
+        .tpc-stat-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+        .tpc-stat-value { font-size: 24px; font-weight: 700; line-height: 1.15; }
+        .tpc-stat-total { border-left-color: var(--gold); color: var(--gold-ink); }
+        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
+        .tpc-stat-completed { border-left-color: var(--green); color: var(--green); }
+        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
+        .tpc-stat-overdue { border-left-color: var(--red); color: var(--red); }
+        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
-        .tpc-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; flex-shrink: 0; }
+        .tpc-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; flex-shrink: 0; }
         .tpc-locked-group-label {
-          font-size: 13px; color: var(--muted); margin-bottom: 16px; padding: 10px 14px;
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; flex-shrink: 0;
+          font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 10px; flex-shrink: 0;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-          padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
+          flex: 1; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid transparent;
+          border-radius: 10px; padding: 12px 16px; cursor: pointer; min-width: 132px; min-height: 64px; text-align: left;
+          transition: border-color .12s, box-shadow .12s; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
-        .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-        .tpc-tab-name {
-          font-size: 12px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 0.04em;
-        }
-        .tpc-tab-count { font-size: 11px; color: var(--muted); margin-top: 1px; }
-        .tpc-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 8px; background: #EEF0F3; }
+        .tpc-tab:hover { box-shadow: 0 2px 8px rgba(16,24,40,0.07); }
+        .tpc-tab.active { background: var(--canvas); }
+        .tpc-tab-ALL.active { border-left-color: var(--navy); }
+        .tpc-tab-CHUC.active { border-left-color: #2E5AAC; }
+        .tpc-tab-TUNG.active { border-left-color: #C2410C; }
+        .tpc-tab-TRUONG.active { border-left-color: #0E7490; }
+        .tpc-tab-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+        .tpc-tab-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
         .tpc-bar span { height: 100%; }
 
         .tpc-toolbar {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
           padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
-          flex-shrink: 0;
+          flex-shrink: 0; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
         .tpc-btn-filter-toggle {
           display: inline-flex; align-items: center; gap: 6px; background: #fff;
-          border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
-          font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+          border: 1px solid var(--border); border-radius: 8px; padding: 9px 13px;
+          font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer;
         }
-        .tpc-btn-filter-toggle:hover { background: #F5F6F8; }
+        .tpc-btn-filter-toggle:hover { background: var(--canvas); }
         .tpc-filter-badge {
           background: var(--blue); color: #fff; font-size: 10px; font-weight: 700;
           min-width: 16px; height: 16px; border-radius: 999px; display: inline-flex;
@@ -558,11 +565,9 @@ export default function App() {
         .tpc-filter-caret { font-size: 9px; color: var(--muted); margin-left: 2px; }
 
         .tpc-filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .tpc-filter-group label {
-          font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-        }
+        .tpc-filter-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
         .tpc-input, .tpc-select {
-          border: 1.5px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12px;
+          border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12.5px;
           color: var(--ink); background: #fff; font-family: inherit;
         }
         .tpc-input:focus, .tpc-select:focus { outline: none; border-color: var(--blue); }
@@ -572,18 +577,18 @@ export default function App() {
         }
         .tpc-spacer { flex: 1; }
         .tpc-btn-secondary {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
-          padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
+          padding: 9px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
         }
-        .tpc-btn-secondary:hover { background: #F5F6F8; }
+        .tpc-btn-secondary:hover { background: var(--canvas); }
         .tpc-btn-add {
           background: var(--navy); color: #fff; border: none; border-radius: 8px;
-          padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+          padding: 10px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
         }
         .tpc-btn-add:hover { background: var(--navy-2); }
 
         .tpc-table-wrap {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
           flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch;
         }
         .tpc-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -595,8 +600,8 @@ export default function App() {
         .tpc-table th, .tpc-table td { white-space: nowrap; }
         .tpc-table th.tpc-col-task, .tpc-table td.tpc-col-task { white-space: normal; }
         .tpc-table thead th {
-          text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em;
-          color: var(--muted); font-weight: 700; padding: 10px 12px; border-bottom: 1.5px solid var(--border);
+          text-align: left; font-size: 12.5px;
+          color: var(--muted); font-weight: 600; padding: 11px 12px; border-bottom: 1px solid var(--border);
           background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
         .tpc-th-sortable { cursor: pointer; user-select: none; }
@@ -605,20 +610,23 @@ export default function App() {
         .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
         .tpc-completed-toggle-row:hover { background: #F0F2F5; }
         .tpc-completed-toggle-row td { padding: 10px 12px; }
-        .tpc-completed-toggle { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-        .tpc-table tbody td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tpc-completed-toggle { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+        .tpc-table tbody td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
-        .tpc-task-name { font-weight: 600; color: var(--ink); cursor: pointer; }
+        .tpc-task-name { font-weight: 500; color: var(--ink); cursor: pointer; }
         .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
         .tpc-desc-caret { color: var(--blue); font-size: 10px; flex-shrink: 0; }
         .tpc-desc-row td { background: #FAFBFC; padding: 12px 16px; border-bottom: 1px solid var(--border); }
         .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
         .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
-          display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+          display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
           background: #EEF1F8; color: var(--navy-2);
         }
+        .tpc-group-pill-CHUC { background: #E7EEFB; color: #2E5AAC; }
+        .tpc-group-pill-TUNG { background: #FBEAE0; color: #C2410C; }
+        .tpc-group-pill-TRUONG { background: #E1F1F5; color: #0E7490; }
         .tpc-status-pill {
           display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
           padding: 4px 10px; border-radius: 999px;
@@ -630,7 +638,7 @@ export default function App() {
         .tpc-checkbox { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
         .tpc-actions { display: flex; gap: 6px; }
         .tpc-icon-btn {
-          border: 1.5px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
+          border: 1px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
           display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px;
         }
         .tpc-icon-btn:hover { background: #F5F6F8; }
@@ -644,15 +652,15 @@ export default function App() {
         .tpc-modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
         .tpc-modal h3 { font-family: 'Sora', sans-serif; font-size: 17px; margin: 0 0 16px; color: var(--ink); }
         .tpc-form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
-        .tpc-form-row label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .tpc-form-row label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
         .tpc-form-row .tpc-input, .tpc-form-row .tpc-select, .tpc-form-row textarea {
           width: 100%; padding: 9px 10px; font-size: 13.5px; font-family: inherit;
-          border: 1.5px solid var(--border); border-radius: 7px; color: var(--ink); resize: vertical;
+          border: 1px solid var(--border); border-radius: 7px; color: var(--ink); resize: vertical;
         }
         .tpc-form-row textarea:focus { outline: none; border-color: var(--blue); }
         .tpc-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
         .tpc-btn-secondary-modal {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
           padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
         .tpc-btn-primary {
@@ -663,22 +671,21 @@ export default function App() {
         @media (max-width: 720px) {
           .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
           .tpc-stat-card {
-            min-width: 0; min-height: 52px; padding: 8px 9px; border-radius: 8px;
-            flex-direction: column; align-items: center; justify-content: center; border: none; text-align: center;
+            min-width: 0; min-height: 58px; padding: 8px 10px; border-radius: 8px;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            border-left-width: 3px;
           }
-          .tpc-stat-card:hover { transform: none; }
-          .tpc-stat-card.active { box-shadow: 0 0 0 2px rgba(16,24,40,0.35); }
+          .tpc-stat-card.active { box-shadow: 0 0 0 1.5px currentColor inset; }
           .tpc-stat-label { font-size: 10px; }
-          .tpc-stat-value { font-size: 20px; margin-top: 2px; }
+          .tpc-stat-value { font-size: 19px; margin-top: 1px; }
 
           .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
           .tpc-tab {
-            flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 4px; border: 1.5px solid var(--border); background: var(--surface);
+            flex: 1 1 0; min-width: 0; min-height: 44px; padding: 7px 6px; border: 1px solid var(--border); border-left-width: 3px; background: var(--surface);
           }
-          .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
           .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
-          .tpc-bar { margin-top: 5px; }
+          .tpc-bar { margin-top: 6px; }
 
           .tpc-body { padding: 14px; }
           .tpc-header {
@@ -803,7 +810,7 @@ export default function App() {
           </div>
         ) : (
           <div className="tpc-tabs">
-            <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+            <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
               <div className="tpc-tab-name">Tất cả nhóm</div>
               <div className="tpc-tab-count">
                 {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
@@ -812,12 +819,12 @@ export default function App() {
             {GROUPS.map((g) => {
               const w = workload(g.key);
               return (
-                <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
                   <div className="tpc-tab-name">{g.label}</div>
                   <div className="tpc-tab-count">{w.o + w.p} công việc</div>
                   {w.total > 0 && (
                     <div className="tpc-bar">
-                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
+                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "var(--gold)" }} />
                       <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
                       <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
                     </div>
