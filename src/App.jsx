@@ -519,9 +519,7 @@ export default function App() {
         }
         .tpc-stats {
           display: flex; gap: 10px; padding: 16px; border-radius: 15px;
-          background:
-            radial-gradient(ellipse 480px 280px at 6% 100%, rgba(52,211,153,0.18), transparent 60%),
-            linear-gradient(135deg, #17222A 0%, #0B0F15 100%);
+          background: #EAFBF3;
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
@@ -530,22 +528,22 @@ export default function App() {
           padding: 6px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
           transition: background-color .15s;
         }
-        .tpc-stat-card:hover { background: rgba(255,255,255,0.04); }
-        .tpc-stat-card.active { background: rgba(255,255,255,0.06); }
+        .tpc-stat-card:hover { background: rgba(16,24,40,0.04); }
+        .tpc-stat-card.active { background: rgba(16,24,40,0.07); }
         .tpc-stat-accent {
           position: absolute; top: -16px; left: 6px; right: 6px; height: 4px; border-radius: 3px;
         }
         .tpc-stat-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: rgba(255,255,255,0.5);
+          color: var(--muted);
         }
         .tpc-stat-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 8px; }
         .tpc-stat-total .tpc-stat-accent { background: var(--gold); }
-        .tpc-stat-total .tpc-stat-value { color: #E4BC5C; }
+        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
         .tpc-stat-completed .tpc-stat-accent { background: var(--green); }
-        .tpc-stat-completed .tpc-stat-value { color: #4ADE94; }
+        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
         .tpc-stat-overdue .tpc-stat-accent { background: var(--red); }
-        .tpc-stat-overdue .tpc-stat-value { color: #EF8B8B; }
+        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
           display: flex; gap: 4px; padding: 6px; margin-bottom: 20px; flex-shrink: 0;
