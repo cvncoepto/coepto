@@ -514,40 +514,43 @@ export default function App() {
         .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         
         .tpc-stats-wrap {
-          padding: 1px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
-          background: var(--border);
+          padding: 1.5px; border-radius: 16px; margin-top: 14px; margin-bottom: 14px; flex-shrink: 0;
+          background: linear-gradient(120deg, rgba(52,211,153,0.9) 0%, rgba(52,211,153,0.35) 55%, rgba(52,211,153,0) 100%);
         }
         .tpc-stats {
-          display: flex; gap: 10px; padding: 20px 16px 16px; border-radius: 15px;
-          background: #D8DCE3;
+          display: flex; gap: 10px; padding: 16px; border-radius: 15px;
+          background:
+            radial-gradient(ellipse 480px 280px at 6% 100%, rgba(52,211,153,0.18), transparent 60%),
+            linear-gradient(135deg, #17222A 0%, #0B0F15 100%);
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
           background: transparent; border: none;
           border-radius: 8px;
-          padding: 8px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          padding: 6px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
           transition: background-color .15s;
         }
-        .tpc-stat-card:hover { background: rgba(16,24,40,0.05); }
-        .tpc-stat-card.active { background: rgba(16,24,40,0.08); }
+        .tpc-stat-card:hover { background: rgba(255,255,255,0.04); }
+        .tpc-stat-card.active { background: rgba(255,255,255,0.06); }
         .tpc-stat-accent {
-          position: absolute; top: -8px; left: 0; right: 0; height: 2px; border-radius: 2px;
+          position: absolute; top: -16px; left: 6px; right: 6px; height: 4px; border-radius: 3px;
         }
         .tpc-stat-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: var(--muted);
+          color: rgba(255,255,255,0.5);
         }
         .tpc-stat-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 8px; }
         .tpc-stat-total .tpc-stat-accent { background: var(--gold); }
-        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
+        .tpc-stat-total .tpc-stat-value { color: #E4BC5C; }
         .tpc-stat-completed .tpc-stat-accent { background: var(--green); }
-        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
+        .tpc-stat-completed .tpc-stat-value { color: #4ADE94; }
         .tpc-stat-overdue .tpc-stat-accent { background: var(--red); }
-        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
+        .tpc-stat-overdue .tpc-stat-value { color: #EF8B8B; }
 
         .tpc-tabs {
           display: flex; gap: 4px; padding: 6px; margin-bottom: 20px; flex-shrink: 0;
-          background: #D8DCE3; border-radius: 999px; width: fit-content; max-width: 100%;
+          background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.35);
+          border-radius: 999px; width: fit-content; max-width: 100%;
         }
         .tpc-locked-group-label {
           font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
