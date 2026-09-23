@@ -509,9 +509,9 @@ export default function App() {
         .tpc-landing-card-CHUC .tpc-landing-card-body { color: #2E5AAC; }
         .tpc-landing-card-TUNG .tpc-landing-card-body { color: #C2410C; }
         .tpc-landing-card-TRUONG .tpc-landing-card-body { color: #0E7490; }
-        .tpc-landing-card-CHUC { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%, #fff 100%); }
-        .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%, #fff 100%); }
-        .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%, #fff 100%); }
+        .tpc-landing-card-CHUC { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%); }
+        .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%); }
+        .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         
         .tpc-stats {
           display: flex; gap: 8px; padding: 10px; margin-bottom: 14px; flex-shrink: 0;
@@ -534,12 +534,12 @@ export default function App() {
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
-        .tpc-stat-total { background: linear-gradient(180deg, var(--gold) 0%, var(--gold-bg) 80%, #fff 100%); }
-        .tpc-stat-total.active { background: linear-gradient(180deg, var(--gold-ink) 0%, var(--gold-bg) 80%, #fff 100%); }
-        .tpc-stat-completed { background: linear-gradient(180deg, var(--green) 0%, var(--green-bg) 80%, #fff 100%); }
-        .tpc-stat-completed.active { background: linear-gradient(180deg, #0E5C3F 0%, var(--green-bg) 80%, #fff 100%); }
-        .tpc-stat-overdue { background: linear-gradient(180deg, var(--red) 0%, var(--red-bg) 80%, #fff 100%); }
-        .tpc-stat-overdue.active { background: linear-gradient(180deg, #96271D 0%, var(--red-bg) 80%, #fff 100%); }
+        .tpc-stat-total { background: linear-gradient(180deg, var(--gold) 0%, var(--gold-bg) 80%); }
+        .tpc-stat-total.active { background: linear-gradient(180deg, var(--gold-ink) 0%, var(--gold-bg) 80%); }
+        .tpc-stat-completed { background: linear-gradient(180deg, var(--green) 0%, var(--green-bg) 80%); }
+        .tpc-stat-completed.active { background: linear-gradient(180deg, #0E5C3F 0%, var(--green-bg) 80%); }
+        .tpc-stat-overdue { background: linear-gradient(180deg, var(--red) 0%, var(--red-bg) 80%); }
+        .tpc-stat-overdue.active { background: linear-gradient(180deg, #96271D 0%, var(--red-bg) 80%); }
 
         .tpc-tabs {
           display: flex; gap: 8px; padding: 10px; margin-bottom: 20px; flex-shrink: 0;
@@ -564,14 +564,14 @@ export default function App() {
         }
         .tpc-tab-header { padding: 10px 14px 6px; color: #fff; font-size: 13px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
         .tpc-tab-body { padding: 2px 14px 12px; }
-        .tpc-tab-ALL { background: linear-gradient(180deg, #8891A5 0%, #F1F2F5 80%, #fff 100%); }
-        .tpc-tab-ALL.active { background: linear-gradient(180deg, var(--navy) 0%, var(--canvas) 80%, #fff 100%); }
-        .tpc-tab-CHUC { background: linear-gradient(180deg, #90A8D6 0%, #EAF0FC 80%, #fff 100%); }
-        .tpc-tab-CHUC.active { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%, #fff 100%); }
-        .tpc-tab-TUNG { background: linear-gradient(180deg, #E0966E 0%, #FBEAE0 80%, #fff 100%); }
-        .tpc-tab-TUNG.active { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%, #fff 100%); }
-        .tpc-tab-TRUONG { background: linear-gradient(180deg, #74B7C6 0%, #E1F1F5 80%, #fff 100%); }
-        .tpc-tab-TRUONG.active { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%, #fff 100%); }
+        .tpc-tab-ALL { background: linear-gradient(180deg, #8891A5 0%, #F1F2F5 80%); }
+        .tpc-tab-ALL.active { background: linear-gradient(180deg, var(--navy) 0%, var(--canvas) 80%); }
+        .tpc-tab-CHUC { background: linear-gradient(180deg, #90A8D6 0%, #EAF0FC 80%); }
+        .tpc-tab-CHUC.active { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%); }
+        .tpc-tab-TUNG { background: linear-gradient(180deg, #E0966E 0%, #FBEAE0 80%); }
+        .tpc-tab-TUNG.active { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%); }
+        .tpc-tab-TRUONG { background: linear-gradient(180deg, #74B7C6 0%, #E1F1F5 80%); }
+        .tpc-tab-TRUONG.active { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         .tpc-tab-count { font-size: 12px; color: var(--muted); }
         .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
         .tpc-bar span { height: 100%; }
