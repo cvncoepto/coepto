@@ -487,21 +487,22 @@ export default function App() {
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
 
-        .tpc-landing { text-align: center; padding: 40px 16px 24px; overflow-y: auto; }
-        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+        .tpc-landing { text-align: center; padding: 48px 16px 24px; overflow-y: auto; }
+        .tpc-landing-sub { font-size: 13.5px; color: var(--muted); margin: 0 0 28px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          min-width: 140px; padding: 28px 24px; border: 1px solid var(--border); border-radius: 14px;
-          background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
-          color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
+          min-width: 168px; padding: 26px 30px; border: 1px solid var(--border); border-left: 5px solid transparent;
+          border-radius: 12px; background: var(--surface); box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+          font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700;
+          cursor: pointer; transition: transform .12s, box-shadow .15s, background-color .15s;
         }
-        .tpc-landing-card:hover { transform: translateY(-2px); }
-        .tpc-landing-card-CHUC { background: #2E5AAC; border-color: #2E5AAC; color: #fff; }
-        .tpc-landing-card-CHUC:hover { background: #1F3F7A; border-color: #1F3F7A; box-shadow: 0 8px 20px rgba(46,90,172,0.35); }
-        .tpc-landing-card-TUNG { background: #C2410C; border-color: #C2410C; color: #fff; }
-        .tpc-landing-card-TUNG:hover { background: #9A3410; border-color: #9A3410; box-shadow: 0 8px 20px rgba(194,65,12,0.35); }
-        .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
-        .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
+        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,24,40,0.1); }
+        .tpc-landing-card-CHUC { border-left-color: #2E5AAC; color: #2E5AAC; }
+        .tpc-landing-card-CHUC:hover { background: #EAF0FC; }
+        .tpc-landing-card-TUNG { border-left-color: #C2410C; color: #C2410C; }
+        .tpc-landing-card-TUNG:hover { background: #FBEAE0; }
+        .tpc-landing-card-TRUONG { border-left-color: #0E7490; color: #0E7490; }
+        .tpc-landing-card-TRUONG:hover { background: #E1F1F5; }
 
         .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; width: 100%; flex-shrink: 0; }
         .tpc-stat-card {
@@ -516,11 +517,11 @@ export default function App() {
         .tpc-stat-card.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor inset; }
         .tpc-stat-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
         .tpc-stat-value { font-size: 24px; font-weight: 700; line-height: 1.15; }
-        .tpc-stat-total { border-left-color: var(--gold); color: var(--gold-ink); }
+        .tpc-stat-total { background: var(--gold-bg); border-left-color: var(--gold); color: var(--gold-ink); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed { border-left-color: var(--green); color: var(--green); }
+        .tpc-stat-completed { background: var(--green-bg); border-left-color: var(--green); color: var(--green); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue { border-left-color: var(--red); color: var(--red); }
+        .tpc-stat-overdue { background: var(--red-bg); border-left-color: var(--red); color: var(--red); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; flex-shrink: 0; }
@@ -538,9 +539,9 @@ export default function App() {
         .tpc-tab:hover { box-shadow: 0 2px 8px rgba(16,24,40,0.07); }
         .tpc-tab.active { background: var(--canvas); }
         .tpc-tab-ALL.active { border-left-color: var(--navy); }
-        .tpc-tab-CHUC.active { border-left-color: #2E5AAC; }
-        .tpc-tab-TUNG.active { border-left-color: #C2410C; }
-        .tpc-tab-TRUONG.active { border-left-color: #0E7490; }
+        .tpc-tab-CHUC.active { border-left-color: #2E5AAC; background: #EAF0FC; }
+        .tpc-tab-TUNG.active { border-left-color: #C2410C; background: #FBEAE0; }
+        .tpc-tab-TRUONG.active { border-left-color: #0E7490; background: #E1F1F5; }
         .tpc-tab-name { font-size: 13px; font-weight: 600; color: var(--ink); }
         .tpc-tab-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
         .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
