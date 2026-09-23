@@ -514,12 +514,15 @@ export default function App() {
         .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         
         .tpc-stats-wrap {
-          padding: 1px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
-          background: linear-gradient(120deg, rgba(52,211,153,0.55), rgba(52,211,153,0.15));
+          padding: 1.5px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
+          background: #34D399;
+          box-shadow: 0 0 20px rgba(52,211,153,0.25);
         }
         .tpc-stats {
-          display: flex; gap: 10px; padding: 14px; border-radius: 15px;
-          background: #10151F;
+          display: flex; gap: 10px; padding: 16px; border-radius: 15px;
+          background:
+            radial-gradient(ellipse 480px 280px at 6% 100%, rgba(52,211,153,0.18), transparent 60%),
+            linear-gradient(135deg, #17222A 0%, #0B0F15 100%);
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
