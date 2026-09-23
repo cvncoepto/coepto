@@ -506,23 +506,26 @@ export default function App() {
 
         .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; width: 100%; flex-shrink: 0; }
         .tpc-stat-card {
-          width: 100%; min-width: 132px; min-height: 64px; background: var(--surface);
-          border: 1px solid var(--border); border-left: 3px solid transparent; border-radius: 10px;
-          padding: 12px 16px; cursor: pointer;
-          transition: border-color .12s, box-shadow .12s; text-align: left; display: flex; flex-direction: column;
-          justify-content: center; gap: 3px;
-          box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+          width: 100%; min-width: 132px; background: var(--surface);
+          border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          transition: box-shadow .12s, transform .12s;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-stat-card:hover { box-shadow: 0 2px 8px rgba(16,24,40,0.07); }
-        .tpc-stat-card.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor inset; }
-        .tpc-stat-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
-        .tpc-stat-value { font-size: 24px; font-weight: 700; line-height: 1.15; }
-        .tpc-stat-total { background: var(--gold-bg); border-left-color: var(--gold); color: var(--gold-ink); }
+        .tpc-stat-card:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
+        .tpc-stat-card.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
+        .tpc-stat-header { padding: 8px 14px; color: #fff; font-size: 12.5px; font-weight: 700; }
+        .tpc-stat-body { padding: 9px 14px 13px; }
+        .tpc-stat-value { font-size: 25px; font-weight: 700; line-height: 1.15; }
+        .tpc-stat-total .tpc-stat-header { background: var(--gold); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed { background: var(--green-bg); border-left-color: var(--green); color: var(--green); }
+        .tpc-stat-total.active .tpc-stat-header { background: var(--gold-ink); }
+        .tpc-stat-completed .tpc-stat-header { background: var(--green); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue { background: var(--red-bg); border-left-color: var(--red); color: var(--red); }
+        .tpc-stat-completed.active .tpc-stat-header { background: #0E5C3F; }
+        .tpc-stat-overdue .tpc-stat-header { background: var(--red); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
+        .tpc-stat-overdue.active .tpc-stat-header { background: #96271D; }
 
         .tpc-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; flex-shrink: 0; }
         .tpc-locked-group-label {
@@ -532,18 +535,23 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          flex: 1; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid transparent;
-          border-radius: 10px; padding: 12px 16px; cursor: pointer; min-width: 132px; min-height: 64px; text-align: left;
-          transition: border-color .12s, box-shadow .12s; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+          flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+          padding: 0; cursor: pointer; min-width: 132px; text-align: left; display: flex; flex-direction: column;
+          transition: box-shadow .12s, transform .12s; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-tab:hover { box-shadow: 0 2px 8px rgba(16,24,40,0.07); }
-        .tpc-tab.active { background: var(--canvas); }
-        .tpc-tab-ALL.active { border-left-color: var(--navy); }
-        .tpc-tab-CHUC.active { border-left-color: #2E5AAC; background: #EAF0FC; }
-        .tpc-tab-TUNG.active { border-left-color: #C2410C; background: #FBEAE0; }
-        .tpc-tab-TRUONG.active { border-left-color: #0E7490; background: #E1F1F5; }
-        .tpc-tab-name { font-size: 13px; font-weight: 600; color: var(--ink); }
-        .tpc-tab-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .tpc-tab:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
+        .tpc-tab.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
+        .tpc-tab-header { padding: 8px 14px; color: #fff; font-size: 13px; font-weight: 700; }
+        .tpc-tab-body { padding: 9px 14px 12px; }
+        .tpc-tab-ALL .tpc-tab-header { background: #8891A5; }
+        .tpc-tab-ALL.active .tpc-tab-header { background: var(--navy); }
+        .tpc-tab-CHUC .tpc-tab-header { background: #90A8D6; }
+        .tpc-tab-CHUC.active .tpc-tab-header { background: #2E5AAC; }
+        .tpc-tab-TUNG .tpc-tab-header { background: #E0966E; }
+        .tpc-tab-TUNG.active .tpc-tab-header { background: #C2410C; }
+        .tpc-tab-TRUONG .tpc-tab-header { background: #74B7C6; }
+        .tpc-tab-TRUONG.active .tpc-tab-header { background: #0E7490; }
+        .tpc-tab-count { font-size: 12px; color: var(--muted); }
         .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
         .tpc-bar span { height: 100%; }
 
@@ -589,13 +597,23 @@ export default function App() {
         .tpc-btn-add:hover { background: var(--navy-2); }
 
         .tpc-table-wrap {
-          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-          flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+          flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
-        .tpc-table-wrap::-webkit-scrollbar-track { background: #F3F5F9; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
+        .tpc-table-header {
+          flex-shrink: 0; background: var(--navy); color: #fff; font-size: 13px; font-weight: 700;
+          padding: 11px 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .tpc-table-header-count {
+          background: rgba(255,255,255,0.18); font-size: 11.5px; font-weight: 700; padding: 1px 8px;
+          border-radius: 999px;
+        }
+        .tpc-table-scroll { flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch; }
+        .tpc-table-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+        .tpc-table-scroll::-webkit-scrollbar-track { background: #F3F5F9; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
         table.tpc-table { width: 100%; border-collapse: collapse; }
         .tpc-table col.tpc-col-task { width: 100%; }
         .tpc-table th, .tpc-table td { white-space: nowrap; }
@@ -671,20 +689,15 @@ export default function App() {
 
         @media (max-width: 720px) {
           .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-          .tpc-stat-card {
-            min-width: 0; min-height: 58px; padding: 8px 10px; border-radius: 8px;
-            flex-direction: column; align-items: center; justify-content: center; text-align: center;
-            border-left-width: 3px;
-          }
-          .tpc-stat-card.active { box-shadow: 0 0 0 1.5px currentColor inset; }
-          .tpc-stat-label { font-size: 10px; }
-          .tpc-stat-value { font-size: 19px; margin-top: 1px; }
+          .tpc-stat-card { min-width: 0; }
+          .tpc-stat-header { padding: 6px 8px; font-size: 9px; text-align: center; }
+          .tpc-stat-body { padding: 7px 8px 9px; text-align: center; }
+          .tpc-stat-value { font-size: 19px; }
 
           .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
-          .tpc-tab {
-            flex: 1 1 0; min-width: 0; min-height: 44px; padding: 7px 6px; border: 1px solid var(--border); border-left-width: 3px; background: var(--surface);
-          }
-          .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-tab { min-width: 0; flex: 1 1 0; }
+          .tpc-tab-header { padding: 6px 5px; font-size: 9px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-tab-body { padding: 6px 5px 7px; text-align: center; }
           .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
           .tpc-bar { margin-top: 6px; }
 
@@ -711,7 +724,8 @@ export default function App() {
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
           .tpc-btn-clear { align-self: flex-start; padding: 2px 4px; }
           .tpc-btn-add { width: 100%; padding: 8px 14px; }
-          .tpc-table-wrap { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-scroll { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-header { padding: 9px 14px; font-size: 12px; }
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
           .tpc-landing { padding: 24px 12px 16px; }
@@ -786,20 +800,20 @@ export default function App() {
             className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
             onClick={() => setActiveStatus("incomplete")}
           >
-            <div>
-              <div className="tpc-stat-label">Công việc</div>
+            <div className="tpc-stat-header">Công việc</div>
+            <div className="tpc-stat-body">
               <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
             </div>
           </button>
           <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <div>
-              <div className="tpc-stat-label">Hoàn thành</div>
+            <div className="tpc-stat-header">Hoàn thành</div>
+            <div className="tpc-stat-body">
               <div className="tpc-stat-value tpc-num">{completedCount}</div>
             </div>
           </button>
           <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <div>
-              <div className="tpc-stat-label">Quá hạn</div>
+            <div className="tpc-stat-header">Quá hạn</div>
+            <div className="tpc-stat-body">
               <div className="tpc-stat-value tpc-num">{overdueCount}</div>
             </div>
           </button>
@@ -812,24 +826,28 @@ export default function App() {
         ) : (
           <div className="tpc-tabs">
             <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-              <div className="tpc-tab-name">Tất cả nhóm</div>
-              <div className="tpc-tab-count">
-                {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
+              <div className="tpc-tab-header">Tất cả nhóm</div>
+              <div className="tpc-tab-body">
+                <div className="tpc-tab-count">
+                  {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
+                </div>
               </div>
             </button>
             {GROUPS.map((g) => {
               const w = workload(g.key);
               return (
                 <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                  <div className="tpc-tab-name">{g.label}</div>
-                  <div className="tpc-tab-count">{w.o + w.p} công việc</div>
-                  {w.total > 0 && (
-                    <div className="tpc-bar">
-                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "var(--gold)" }} />
-                      <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                      <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                    </div>
-                  )}
+                  <div className="tpc-tab-header">{g.label}</div>
+                  <div className="tpc-tab-body">
+                    <div className="tpc-tab-count">{w.o + w.p} công việc</div>
+                    {w.total > 0 && (
+                      <div className="tpc-bar">
+                        <span style={{ width: `${(w.p / w.total) * 100}%`, background: "var(--gold)" }} />
+                        <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
+                        <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -905,6 +923,11 @@ export default function App() {
         })()}
 
         <div className="tpc-table-wrap">
+          <div className="tpc-table-header">
+            Danh sách công việc
+            <span className="tpc-table-header-count">{incompleteTasks.length + completedTasks.length}</span>
+          </div>
+          <div className="tpc-table-scroll">
           {incompleteTasks.length === 0 && completedTasks.length === 0 ? (
             <div className="tpc-empty">Không có công việc nào khớp với bộ lọc hiện tại.</div>
           ) : (
@@ -949,6 +972,7 @@ export default function App() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
           </>
         )}
