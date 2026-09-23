@@ -513,38 +513,38 @@ export default function App() {
         .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%); }
         .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         
+        .tpc-stats-wrap {
+          padding: 1.5px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
+          background: linear-gradient(120deg, var(--gold), var(--green), var(--red));
+        }
         .tpc-stats {
-          display: flex; gap: 8px; padding: 10px; margin-bottom: 14px; flex-shrink: 0;
-          border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
-          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          display: flex; gap: 10px; padding: 14px; border-radius: 14.5px;
+          background: #10151F;
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
-          border: none; border-radius: 8px; overflow: hidden;
-          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
-          transition: filter .12s;
+          background: rgba(255,255,255,0.035); border: none; border-top: 3px solid transparent;
+          border-radius: 10px; overflow: hidden;
+          padding: 12px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          transition: background-color .15s;
         }
-        .tpc-stat-card:hover { filter: brightness(1.04); }
-        .tpc-stat-card.active::before {
-          content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff;
+        .tpc-stat-card:hover { background: rgba(255,255,255,0.06); }
+        .tpc-stat-card.active { background: rgba(255,255,255,0.08); }
+        .tpc-stat-label {
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+          color: rgba(255,255,255,0.55);
         }
-        .tpc-stat-header { padding: 10px 14px 6px; color: #fff; font-size: 12.5px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
-        .tpc-stat-body { padding: 2px 14px 14px; }
-        .tpc-stat-value { font-size: 25px; font-weight: 700; line-height: 1.15; }
-        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
-        .tpc-stat-total { background: linear-gradient(180deg, var(--gold) 0%, var(--gold-bg) 80%); }
-        .tpc-stat-total.active { background: linear-gradient(180deg, var(--gold-ink) 0%, var(--gold-bg) 80%); }
-        .tpc-stat-completed { background: linear-gradient(180deg, var(--green) 0%, var(--green-bg) 80%); }
-        .tpc-stat-completed.active { background: linear-gradient(180deg, #0E5C3F 0%, var(--green-bg) 80%); }
-        .tpc-stat-overdue { background: linear-gradient(180deg, var(--red) 0%, var(--red-bg) 80%); }
-        .tpc-stat-overdue.active { background: linear-gradient(180deg, #96271D 0%, var(--red-bg) 80%); }
+        .tpc-stat-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 8px; }
+        .tpc-stat-total { border-top-color: var(--gold); }
+        .tpc-stat-total .tpc-stat-value { color: #F0C555; }
+        .tpc-stat-completed { border-top-color: var(--green); }
+        .tpc-stat-completed .tpc-stat-value { color: #34D399; }
+        .tpc-stat-overdue { border-top-color: var(--red); }
+        .tpc-stat-overdue .tpc-stat-value { color: #F87171; }
 
         .tpc-tabs {
-          display: flex; gap: 8px; padding: 10px; margin-bottom: 20px; flex-shrink: 0;
-          border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
-          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          display: flex; gap: 4px; padding: 5px; margin-bottom: 20px; flex-shrink: 0;
+          background: #121A2E; border-radius: 999px; width: fit-content; max-width: 100%;
         }
         .tpc-locked-group-label {
           font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
@@ -553,28 +553,23 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          flex: 1; min-width: 0; position: relative;
-          border: none; border-radius: 8px; overflow: hidden;
-          padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
-          transition: filter .12s;
+          border: none; border-radius: 999px; background: transparent;
+          padding: 9px 16px; cursor: pointer; white-space: nowrap;
+          display: flex; align-items: center; gap: 7px;
+          font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.6);
+          transition: background-color .15s, color .15s;
         }
-        .tpc-tab:hover { filter: brightness(1.04); }
-        .tpc-tab.active::before {
-          content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff;
+        .tpc-tab:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+        .tpc-tab-count {
+          font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+          background: rgba(255,255,255,0.12); color: inherit;
         }
-        .tpc-tab-header { padding: 10px 14px 6px; color: #fff; font-size: 13px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
-        .tpc-tab-body { padding: 2px 14px 12px; }
-        .tpc-tab-ALL { background: linear-gradient(180deg, #8891A5 0%, #F1F2F5 80%); }
-        .tpc-tab-ALL.active { background: linear-gradient(180deg, var(--navy) 0%, var(--canvas) 80%); }
-        .tpc-tab-CHUC { background: linear-gradient(180deg, #90A8D6 0%, #EAF0FC 80%); }
-        .tpc-tab-CHUC.active { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%); }
-        .tpc-tab-TUNG { background: linear-gradient(180deg, #E0966E 0%, #FBEAE0 80%); }
-        .tpc-tab-TUNG.active { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%); }
-        .tpc-tab-TRUONG { background: linear-gradient(180deg, #74B7C6 0%, #E1F1F5 80%); }
-        .tpc-tab-TRUONG.active { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
-        .tpc-tab-count { font-size: 12px; color: var(--muted); }
-        .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
-        .tpc-bar span { height: 100%; }
+        .tpc-tab-ALL.active { background: #E7EAF1; color: var(--navy); }
+        .tpc-tab-CHUC.active { background: #DCE7FA; color: #1F3F7A; }
+        .tpc-tab-TUNG.active { background: #FBE1D2; color: #9A3410; }
+        .tpc-tab-TRUONG.active { background: #D3EEF3; color: #0A5A70; }
+        .tpc-tab.active .tpc-tab-count { background: rgba(16,24,40,0.1); }
+        .tpc-tab.active:hover { filter: brightness(0.97); }
 
         .tpc-toolbar {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -709,18 +704,15 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-          .tpc-stat-card { min-width: 0; }
-          .tpc-stat-header { padding: 6px 8px; font-size: 9px; text-align: center; }
-          .tpc-stat-body { padding: 7px 8px 9px; text-align: center; }
-          .tpc-stat-value { font-size: 19px; }
+          .tpc-stats-wrap { margin-bottom: 10px; border-radius: 13px; }
+          .tpc-stats { gap: 6px; padding: 8px; border-radius: 11.5px; }
+          .tpc-stat-card { padding: 8px 9px 10px; text-align: center; }
+          .tpc-stat-label { font-size: 8.5px; }
+          .tpc-stat-value { font-size: 19px; margin-top: 4px; }
 
-          .tpc-tabs { margin-bottom: 12px; }
-          .tpc-tab { min-width: 0; flex: 1 1 0; }
-          .tpc-tab-header { padding: 6px 5px; font-size: 9px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-tab-body { padding: 6px 5px 7px; text-align: center; }
-          .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
-          .tpc-bar { margin-top: 6px; }
+          .tpc-tabs { margin-bottom: 12px; max-width: 100%; overflow-x: auto; }
+          .tpc-tab { padding: 7px 12px; font-size: 11px; gap: 5px; }
+          .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
           .tpc-header {
@@ -820,28 +812,24 @@ export default function App() {
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
         {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
-        <div className="tpc-stats">
-          <button
-            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
-            onClick={() => setActiveStatus("incomplete")}
-          >
-            <div className="tpc-stat-header">Công việc</div>
-            <div className="tpc-stat-body">
+        <div className="tpc-stats-wrap">
+          <div className="tpc-stats">
+            <button
+              className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+              onClick={() => setActiveStatus("incomplete")}
+            >
+              <div className="tpc-stat-label">Công việc</div>
               <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <div className="tpc-stat-header">Hoàn thành</div>
-            <div className="tpc-stat-body">
+            </button>
+            <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
+              <div className="tpc-stat-label">Hoàn thành</div>
               <div className="tpc-stat-value tpc-num">{completedCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <div className="tpc-stat-header">Quá hạn</div>
-            <div className="tpc-stat-body">
+            </button>
+            <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
+              <div className="tpc-stat-label">Quá hạn</div>
               <div className="tpc-stat-value tpc-num">{overdueCount}</div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
 
         {isLockedViewer ? (
@@ -851,28 +839,15 @@ export default function App() {
         ) : (
           <div className="tpc-tabs">
             <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-              <div className="tpc-tab-header">Tất cả nhóm</div>
-              <div className="tpc-tab-body">
-                <div className="tpc-tab-count">
-                  {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
-                </div>
-              </div>
+              Tất cả
+              <span className="tpc-tab-count">{tasks.filter((t) => getStatus(t) !== "completed").length}</span>
             </button>
             {GROUPS.map((g) => {
               const w = workload(g.key);
               return (
                 <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                  <div className="tpc-tab-header">{g.label}</div>
-                  <div className="tpc-tab-body">
-                    <div className="tpc-tab-count">{w.o + w.p} công việc</div>
-                    {w.total > 0 && (
-                      <div className="tpc-bar">
-                        <span style={{ width: `${(w.p / w.total) * 100}%`, background: "var(--gold)" }} />
-                        <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                        <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                      </div>
-                    )}
-                  </div>
+                  {g.label}
+                  <span className="tpc-tab-count">{w.o + w.p}</span>
                 </button>
               );
             })}
