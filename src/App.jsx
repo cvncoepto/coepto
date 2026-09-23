@@ -514,33 +514,33 @@ export default function App() {
         .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
         
         .tpc-stats-wrap {
-          padding: 1.5px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
-          background: linear-gradient(120deg, var(--gold), var(--green), var(--red));
+          padding: 1px; border-radius: 16px; margin-bottom: 14px; flex-shrink: 0;
+          background: linear-gradient(120deg, rgba(52,211,153,0.55), rgba(52,211,153,0.15));
         }
         .tpc-stats {
-          display: flex; gap: 10px; padding: 14px; border-radius: 14.5px;
+          display: flex; gap: 10px; padding: 14px; border-radius: 15px;
           background: #10151F;
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
-          background: rgba(255,255,255,0.035); border: none; border-top: 3px solid transparent;
-          border-radius: 10px; overflow: hidden;
+          background: transparent; border: none; border-top: 2px solid transparent;
+          border-radius: 8px; overflow: hidden;
           padding: 12px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
           transition: background-color .15s;
         }
-        .tpc-stat-card:hover { background: rgba(255,255,255,0.06); }
-        .tpc-stat-card.active { background: rgba(255,255,255,0.08); }
+        .tpc-stat-card:hover { background: rgba(255,255,255,0.04); }
+        .tpc-stat-card.active { background: rgba(255,255,255,0.06); }
         .tpc-stat-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: rgba(255,255,255,0.55);
+          color: rgba(255,255,255,0.5);
         }
         .tpc-stat-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 8px; }
-        .tpc-stat-total { border-top-color: var(--gold); }
-        .tpc-stat-total .tpc-stat-value { color: #F0C555; }
-        .tpc-stat-completed { border-top-color: var(--green); }
-        .tpc-stat-completed .tpc-stat-value { color: #34D399; }
-        .tpc-stat-overdue { border-top-color: var(--red); }
-        .tpc-stat-overdue .tpc-stat-value { color: #F87171; }
+        .tpc-stat-total { border-top-color: rgba(240,197,85,0.7); }
+        .tpc-stat-total .tpc-stat-value { color: #E4BC5C; }
+        .tpc-stat-completed { border-top-color: rgba(52,211,153,0.7); }
+        .tpc-stat-completed .tpc-stat-value { color: #4ADE94; }
+        .tpc-stat-overdue { border-top-color: rgba(248,113,113,0.7); }
+        .tpc-stat-overdue .tpc-stat-value { color: #EF8B8B; }
 
         .tpc-tabs {
           display: flex; gap: 4px; padding: 5px; margin-bottom: 20px; flex-shrink: 0;
