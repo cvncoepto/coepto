@@ -1,11 +1,8 @@
-// Client wrapper cho Netlify Function /api/tasks (netlify/functions/tasks.js).
-// Dữ liệu được lưu thật trong Netlify Blobs, dùng chung cho mọi người truy cập site.
-
 async function authHeader() {
   const user = window.netlifyIdentity?.currentUser();
   if (!user) return {};
   try {
-    const token = await user.jwt(); // tự refresh token nếu cần
+    const token = await user.jwt();
     return { Authorization: `Bearer ${token}` };
   } catch {
     return {};
@@ -18,7 +15,6 @@ export async function fetchTasks() {
   return res.json();
 }
 
-// Ghi đè toàn bộ danh sách — chỉ Giám sát mới gọi được (server sẽ kiểm tra lại role).
 export async function replaceTasks(tasks) {
   const res = await fetch("/api/tasks", {
     method: "POST",
@@ -32,7 +28,6 @@ export async function replaceTasks(tasks) {
   return res.json();
 }
 
-// Tick / bỏ tick hoàn thành — ai cũng gọi được. "by" là tên người thực hiện, dùng để truy vết.
 export async function toggleTaskComplete(id, todayIso, by) {
   const res = await fetch("/api/tasks", {
     method: "PATCH",

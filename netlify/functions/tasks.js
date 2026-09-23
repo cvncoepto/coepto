@@ -28,14 +28,11 @@ export const handler = async (event, context) => {
   connectLambda(event);
   const store = getStore(STORE_NAME);
 
-  // Đọc danh sách công việc — công khai, ai cũng xem được (không cần đăng nhập).
   if (event.httpMethod === "GET") {
     const tasks = (await store.get(KEY, { type: "json" })) || [];
     return json(tasks);
   }
 
-  // Ghi đè toàn bộ danh sách — dùng khi Giám sát thêm/sửa/xóa công việc.
-  // Bắt buộc phải có role "giam_sat" trong Netlify Identity.
   if (event.httpMethod === "POST") {
     if (!isSupervisor(context)) {
       return json({ error: "Chỉ Giám sát mới có quyền thêm/sửa/xóa công việc." }, 403);
@@ -53,8 +50,6 @@ export const handler = async (event, context) => {
     return json(body.tasks);
   }
 
-  // Tick / bỏ tick hoàn thành — cho phép mọi người dùng (không cần role đặc biệt),
-  // vì đây là quyền chung của cả 3 nhóm CHỨC/TÙNG/TRƯỜNG.
   if (event.httpMethod === "PATCH") {
     let body;
     try {
