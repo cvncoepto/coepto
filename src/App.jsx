@@ -491,22 +491,27 @@ export default function App() {
         .tpc-landing-sub { font-size: 13.5px; color: var(--muted); margin: 0 0 28px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          min-width: 168px; padding: 26px 30px; border: 1px solid var(--border); border-left: 5px solid transparent;
-          border-radius: 12px; background: var(--surface); box-shadow: 0 1px 3px rgba(16,24,40,0.05);
-          font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700;
-          cursor: pointer; transition: transform .12s, box-shadow .15s, background-color .15s;
+          min-width: 176px; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+          box-shadow: 0 1px 3px rgba(16,24,40,0.05); text-align: left;
+          cursor: pointer; transition: transform .12s, box-shadow .15s;
+          display: flex; flex-direction: column;
         }
-        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,24,40,0.1); }
-        .tpc-landing-card-CHUC { border-left-color: #2E5AAC; color: #2E5AAC; }
-        .tpc-landing-card-CHUC:hover { background: #EAF0FC; }
-        .tpc-landing-card-TUNG { border-left-color: #C2410C; color: #C2410C; }
-        .tpc-landing-card-TUNG:hover { background: #FBEAE0; }
-        .tpc-landing-card-TRUONG { border-left-color: #0E7490; color: #0E7490; }
-        .tpc-landing-card-TRUONG:hover { background: #E1F1F5; }
+        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,24,40,0.12); }
+        .tpc-landing-card-header {
+          font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: #fff;
+          padding: 18px 22px 8px;
+        }
+        .tpc-landing-card-body { font-size: 12px; padding: 2px 22px 18px; }
+        .tpc-landing-card-CHUC { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 62%, #fff 100%); }
+        .tpc-landing-card-CHUC .tpc-landing-card-body { color: #2E5AAC; }
+        .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 62%, #fff 100%); }
+        .tpc-landing-card-TUNG .tpc-landing-card-body { color: #C2410C; }
+        .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 62%, #fff 100%); }
+        .tpc-landing-card-TRUONG .tpc-landing-card-body { color: #0E7490; }
 
         .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; width: 100%; flex-shrink: 0; }
         .tpc-stat-card {
-          width: 100%; min-width: 132px; background: var(--surface);
+          width: 100%; min-width: 132px;
           border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
           padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column;
           transition: box-shadow .12s, transform .12s;
@@ -514,18 +519,18 @@ export default function App() {
         }
         .tpc-stat-card:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
         .tpc-stat-card.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
-        .tpc-stat-header { padding: 8px 14px; color: #fff; font-size: 12.5px; font-weight: 700; }
-        .tpc-stat-body { padding: 9px 14px 13px; }
+        .tpc-stat-header { padding: 10px 14px 6px; color: #fff; font-size: 12.5px; font-weight: 700; }
+        .tpc-stat-body { padding: 2px 14px 14px; }
         .tpc-stat-value { font-size: 25px; font-weight: 700; line-height: 1.15; }
-        .tpc-stat-total .tpc-stat-header { background: var(--gold); }
+        .tpc-stat-total { background: linear-gradient(180deg, var(--gold) 0%, var(--gold-bg) 68%, #fff 100%); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-total.active .tpc-stat-header { background: var(--gold-ink); }
-        .tpc-stat-completed .tpc-stat-header { background: var(--green); }
+        .tpc-stat-total.active { background: linear-gradient(180deg, var(--gold-ink) 0%, var(--gold-bg) 68%, #fff 100%); }
+        .tpc-stat-completed { background: linear-gradient(180deg, var(--green) 0%, var(--green-bg) 68%, #fff 100%); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-completed.active .tpc-stat-header { background: #0E5C3F; }
-        .tpc-stat-overdue .tpc-stat-header { background: var(--red); }
+        .tpc-stat-completed.active { background: linear-gradient(180deg, #0E5C3F 0%, var(--green-bg) 68%, #fff 100%); }
+        .tpc-stat-overdue { background: linear-gradient(180deg, var(--red) 0%, var(--red-bg) 68%, #fff 100%); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
-        .tpc-stat-overdue.active .tpc-stat-header { background: #96271D; }
+        .tpc-stat-overdue.active { background: linear-gradient(180deg, #96271D 0%, var(--red-bg) 68%, #fff 100%); }
 
         .tpc-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; flex-shrink: 0; }
         .tpc-locked-group-label {
@@ -535,22 +540,22 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+          flex: 1; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
           padding: 0; cursor: pointer; min-width: 132px; text-align: left; display: flex; flex-direction: column;
           transition: box-shadow .12s, transform .12s; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
         .tpc-tab:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.09); }
         .tpc-tab.active { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,24,40,0.14); }
-        .tpc-tab-header { padding: 8px 14px; color: #fff; font-size: 13px; font-weight: 700; }
-        .tpc-tab-body { padding: 9px 14px 12px; }
-        .tpc-tab-ALL .tpc-tab-header { background: #8891A5; }
-        .tpc-tab-ALL.active .tpc-tab-header { background: var(--navy); }
-        .tpc-tab-CHUC .tpc-tab-header { background: #90A8D6; }
-        .tpc-tab-CHUC.active .tpc-tab-header { background: #2E5AAC; }
-        .tpc-tab-TUNG .tpc-tab-header { background: #E0966E; }
-        .tpc-tab-TUNG.active .tpc-tab-header { background: #C2410C; }
-        .tpc-tab-TRUONG .tpc-tab-header { background: #74B7C6; }
-        .tpc-tab-TRUONG.active .tpc-tab-header { background: #0E7490; }
+        .tpc-tab-header { padding: 10px 14px 6px; color: #fff; font-size: 13px; font-weight: 700; }
+        .tpc-tab-body { padding: 2px 14px 12px; }
+        .tpc-tab-ALL { background: linear-gradient(180deg, #8891A5 0%, #F1F2F5 65%, #fff 100%); }
+        .tpc-tab-ALL.active { background: linear-gradient(180deg, var(--navy) 0%, var(--canvas) 65%, #fff 100%); }
+        .tpc-tab-CHUC { background: linear-gradient(180deg, #90A8D6 0%, #EAF0FC 65%, #fff 100%); }
+        .tpc-tab-CHUC.active { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 65%, #fff 100%); }
+        .tpc-tab-TUNG { background: linear-gradient(180deg, #E0966E 0%, #FBEAE0 65%, #fff 100%); }
+        .tpc-tab-TUNG.active { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 65%, #fff 100%); }
+        .tpc-tab-TRUONG { background: linear-gradient(180deg, #74B7C6 0%, #E1F1F5 65%, #fff 100%); }
+        .tpc-tab-TRUONG.active { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 65%, #fff 100%); }
         .tpc-tab-count { font-size: 12px; color: var(--muted); }
         .tpc-bar { height: 4px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 10px; background: #EEF0F3; }
         .tpc-bar span { height: 100%; }
@@ -730,7 +735,9 @@ export default function App() {
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
           .tpc-landing { padding: 24px 12px 16px; }
           .tpc-landing-cards { flex-direction: column; align-items: stretch; }
-          .tpc-landing-card { min-width: 0; padding: 20px; }
+          .tpc-landing-card { min-width: 0; }
+          .tpc-landing-card-header { padding: 16px 20px 6px; }
+          .tpc-landing-card-body { padding: 2px 20px 16px; }
         }
 
         @media (max-width: 420px) {
@@ -778,7 +785,8 @@ export default function App() {
                   className={`tpc-landing-card tpc-landing-card-${g.key}`}
                   onClick={() => chooseViewerName(g.key)}
                 >
-                  {g.label}
+                  <div className="tpc-landing-card-header">{g.label}</div>
+                  <div className="tpc-landing-card-body">Xem công việc của nhóm</div>
                 </button>
               ))}
             </div>
