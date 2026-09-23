@@ -519,7 +519,7 @@ export default function App() {
         }
         .tpc-stats {
           display: flex; gap: 10px; padding: 16px; border-radius: 15px;
-          background: #EAFBF3;
+          background: linear-gradient(120deg, rgba(52,211,153,0.15) 0%, var(--bg) 55%);
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; position: relative;
@@ -531,7 +531,7 @@ export default function App() {
         .tpc-stat-card:hover { background: rgba(16,24,40,0.04); }
         .tpc-stat-card.active { background: rgba(16,24,40,0.07); }
         .tpc-stat-accent {
-          position: absolute; top: -16px; left: 6px; right: 6px; height: 4px; border-radius: 3px;
+          position: absolute; top: -18px; left: 6px; right: 6px; height: 6px; border-radius: 4px;
         }
         .tpc-stat-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
@@ -547,7 +547,7 @@ export default function App() {
 
         .tpc-tabs {
           display: flex; gap: 4px; padding: 6px; margin-bottom: 20px; flex-shrink: 0;
-          background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.35);
+          background: rgba(16,24,40,0.045); border: 1px solid rgba(16,24,40,0.07);
           border-radius: 999px; width: fit-content; max-width: 100%;
         }
         .tpc-locked-group-label {
@@ -568,11 +568,8 @@ export default function App() {
           font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
           background: rgba(16,24,40,0.08); color: inherit;
         }
-        .tpc-tab-ALL.active { background: #fff; color: var(--navy); box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
-        .tpc-tab-CHUC.active { background: #fff; color: #1F3F7A; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
-        .tpc-tab-TUNG.active { background: #fff; color: #9A3410; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
-        .tpc-tab-TRUONG.active { background: #fff; color: #0A5A70; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
-        .tpc-tab.active .tpc-tab-count { background: rgba(16,24,40,0.08); }
+        .tpc-tab.active { background: #34D399; color: #0B3B2A; box-shadow: 0 1px 4px rgba(52,211,153,0.4); }
+        .tpc-tab.active .tpc-tab-count { background: rgba(11,59,42,0.15); }
         .tpc-tab.active:hover { filter: brightness(0.97); }
 
         .tpc-toolbar {
