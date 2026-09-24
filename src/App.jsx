@@ -632,7 +632,7 @@ export default function App() {
         .tpc-table th.tpc-col-task, .tpc-table td.tpc-col-task { white-space: normal; }
         .tpc-table thead th {
           text-align: left; font-size: 12.5px;
-          color: var(--muted); font-weight: 600; padding: 11px 12px; border-bottom: 1px solid var(--border);
+          color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border);
           background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
         .tpc-th-sortable { cursor: pointer; user-select: none; }
@@ -640,15 +640,15 @@ export default function App() {
         .tpc-sort-arrow { color: var(--blue); }
         .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
         .tpc-completed-toggle-row:hover { background: #F0F2F5; }
-        .tpc-completed-toggle-row td { padding: 10px 12px; }
+        .tpc-completed-toggle-row td { padding: 7px 12px; }
         .tpc-completed-toggle { font-size: 12.5px; font-weight: 600; color: var(--muted); }
-        .tpc-table tbody td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tpc-table tbody td { padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
         .tpc-task-name { font-weight: 500; color: var(--ink); cursor: pointer; }
         .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
         .tpc-desc-caret { color: var(--blue); font-size: 10px; flex-shrink: 0; }
-        .tpc-desc-row td { background: #FAFBFC; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-row td { background: #FAFBFC; padding: 8px 16px; border-bottom: 1px solid var(--border); }
         .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
         .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
