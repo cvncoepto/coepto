@@ -492,7 +492,8 @@ export default function App() {
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
           min-width: 176px; padding: 24px 26px; background: var(--surface);
-          border: 1px solid var(--border); border-top: 4px solid transparent; border-radius: 12px;
+          border: 1px solid var(--border); border-top: 5px solid transparent;
+          border-radius: 0 0 12px 12px;
           box-shadow: 0 1px 3px rgba(16,24,40,0.05);
           cursor: pointer; text-align: left; transition: transform .12s, box-shadow .15s;
         }
@@ -520,7 +521,7 @@ export default function App() {
         .tpc-stat-card:last-child { border-right: none; }
         .tpc-stat-card:hover { background: var(--canvas); }
         .tpc-stat-card.active { background: var(--canvas); }
-        .tpc-stat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .tpc-stat-dot { width: 5px; height: 26px; border-radius: 0; flex-shrink: 0; }
         .tpc-stat-text { display: flex; flex-direction: column; min-width: 0; }
         .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
         .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 1px; }
@@ -699,7 +700,7 @@ export default function App() {
           .tpc-stats { flex-direction: column; margin-bottom: 12px; }
           .tpc-stat-card { border-right: none; border-bottom: 1px solid var(--border); padding: 11px 14px; }
           .tpc-stat-card:last-child { border-bottom: none; }
-          .tpc-stat-dot { width: 8px; height: 8px; }
+          .tpc-stat-dot { width: 4px; height: 20px; }
           .tpc-stat-label { font-size: 11px; }
           .tpc-stat-value { font-size: 18px; }
 
