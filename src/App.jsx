@@ -513,23 +513,22 @@ export default function App() {
           box-shadow: 0 1px 2px rgba(16,24,40,0.04); overflow: hidden;
         }
         .tpc-stat-card {
-          flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px;
-          border: none; border-right: 1px solid var(--border); background: transparent;
-          padding: 16px 20px; cursor: pointer; text-align: left;
+          flex: 1; min-width: 0; display: flex; flex-direction: column;
+          border: none; border-top: 4px solid transparent; border-right: 1px solid var(--border);
+          background: transparent;
+          padding: 14px 20px 16px; cursor: pointer; text-align: left;
           transition: background-color .15s;
         }
         .tpc-stat-card:last-child { border-right: none; }
         .tpc-stat-card:hover { background: var(--canvas); }
         .tpc-stat-card.active { background: var(--canvas); }
-        .tpc-stat-dot { width: 5px; height: 26px; border-radius: 0; flex-shrink: 0; }
-        .tpc-stat-text { display: flex; flex-direction: column; min-width: 0; }
         .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
-        .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 1px; }
-        .tpc-stat-total .tpc-stat-dot { background: var(--gold); }
+        .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
+        .tpc-stat-total { border-top-color: var(--gold); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed .tpc-stat-dot { background: var(--green); }
+        .tpc-stat-completed { border-top-color: var(--green); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue .tpc-stat-dot { background: var(--red); }
+        .tpc-stat-overdue { border-top-color: var(--red); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
@@ -700,7 +699,6 @@ export default function App() {
           .tpc-stats { flex-direction: column; margin-bottom: 12px; }
           .tpc-stat-card { border-right: none; border-bottom: 1px solid var(--border); padding: 11px 14px; }
           .tpc-stat-card:last-child { border-bottom: none; }
-          .tpc-stat-dot { width: 4px; height: 20px; }
           .tpc-stat-label { font-size: 11px; }
           .tpc-stat-value { font-size: 18px; }
 
@@ -806,25 +804,16 @@ export default function App() {
             className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
             onClick={() => setActiveStatus("incomplete")}
           >
-            <span className="tpc-stat-dot" />
-            <span className="tpc-stat-text">
-              <span className="tpc-stat-label">Công việc</span>
-              <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
-            </span>
+            <span className="tpc-stat-label">Công việc</span>
+            <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
           </button>
           <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <span className="tpc-stat-dot" />
-            <span className="tpc-stat-text">
-              <span className="tpc-stat-label">Hoàn thành</span>
-              <span className="tpc-stat-value tpc-num">{completedCount}</span>
-            </span>
+            <span className="tpc-stat-label">Hoàn thành</span>
+            <span className="tpc-stat-value tpc-num">{completedCount}</span>
           </button>
           <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <span className="tpc-stat-dot" />
-            <span className="tpc-stat-text">
-              <span className="tpc-stat-label">Quá hạn</span>
-              <span className="tpc-stat-value tpc-num">{overdueCount}</span>
-            </span>
+            <span className="tpc-stat-label">Quá hạn</span>
+            <span className="tpc-stat-value tpc-num">{overdueCount}</span>
           </button>
         </div>
 
