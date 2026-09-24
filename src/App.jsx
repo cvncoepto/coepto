@@ -701,14 +701,14 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-summary-card { margin-bottom: 12px; padding: 12px; }
-          .tpc-stats { flex-direction: column; gap: 8px; margin-bottom: 10px; }
-          .tpc-stat-card { padding: 10px 14px 12px; }
-          .tpc-stat-label { font-size: 11px; }
-          .tpc-stat-value { font-size: 18px; }
+          .tpc-summary-card { margin-bottom: 10px; padding: 10px; }
+          .tpc-stats { flex-direction: row; gap: 6px; margin-bottom: 10px; }
+          .tpc-stat-card { min-width: 0; padding: 8px 8px 9px; }
+          .tpc-stat-label { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-stat-value { font-size: 16px; margin-top: 2px; }
 
-          .tpc-tabs { gap: 8px; max-width: 100%; overflow-x: auto; padding-bottom: 2px; }
-          .tpc-tab { padding: 8px 12px; font-size: 12.5px; gap: 6px; }
+          .tpc-tabs { gap: 6px; max-width: 100%; overflow-x: auto; padding-bottom: 2px; }
+          .tpc-tab { padding: 7px 10px; font-size: 12px; gap: 5px; }
           .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
