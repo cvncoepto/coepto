@@ -532,8 +532,7 @@ export default function App() {
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
-          display: flex; gap: 22px; margin-bottom: 20px; flex-shrink: 0;
-          border-bottom: 1px solid var(--border);
+          display: flex; gap: 8px; margin-bottom: 20px; flex-shrink: 0; flex-wrap: wrap;
         }
         .tpc-locked-group-label {
           font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
@@ -542,26 +541,26 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          border: none; background: transparent; cursor: pointer; white-space: nowrap;
+          border: none; background: var(--surface); cursor: pointer; white-space: nowrap;
           display: flex; align-items: center; gap: 8px;
-          padding: 11px 2px 10px; margin-bottom: -1px;
+          padding: 10px 16px; border-radius: 8px;
           font-size: 14px; font-weight: 600; color: var(--muted);
-          border-bottom: 2px solid transparent;
-          transition: color .15s, border-color .15s;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          transition: background-color .15s, color .15s, box-shadow .15s;
         }
-        .tpc-tab:hover { color: var(--ink); }
+        .tpc-tab:hover { background: var(--canvas); color: var(--ink); }
         .tpc-tab-count {
           font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
           background: var(--canvas); color: var(--muted);
         }
-        .tpc-tab-ALL.active { color: var(--navy); border-bottom-color: var(--navy); }
-        .tpc-tab-ALL.active .tpc-tab-count { background: var(--navy); color: #fff; }
-        .tpc-tab-CHUC.active { color: #2E5AAC; border-bottom-color: #2E5AAC; }
-        .tpc-tab-CHUC.active .tpc-tab-count { background: #2E5AAC; color: #fff; }
-        .tpc-tab-TUNG.active { color: #C2410C; border-bottom-color: #C2410C; }
-        .tpc-tab-TUNG.active .tpc-tab-count { background: #C2410C; color: #fff; }
-        .tpc-tab-TRUONG.active { color: #0E7490; border-bottom-color: #0E7490; }
-        .tpc-tab-TRUONG.active .tpc-tab-count { background: #0E7490; color: #fff; }
+        .tpc-tab-ALL.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(22,34,63,0.35); }
+        .tpc-tab-ALL.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-CHUC.active { background: #2E5AAC; color: #fff; box-shadow: 0 2px 8px rgba(46,90,172,0.35); }
+        .tpc-tab-CHUC.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TUNG.active { background: #C2410C; color: #fff; box-shadow: 0 2px 8px rgba(194,65,12,0.35); }
+        .tpc-tab-TUNG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TRUONG.active { background: #0E7490; color: #fff; box-shadow: 0 2px 8px rgba(14,116,144,0.35); }
+        .tpc-tab-TRUONG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
 
         .tpc-toolbar {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -703,7 +702,7 @@ export default function App() {
           .tpc-stat-value { font-size: 18px; }
 
           .tpc-tabs { gap: 16px; margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
-          .tpc-tab { padding: 9px 1px 8px; font-size: 12.5px; gap: 6px; }
+          .tpc-tab { padding: 8px 12px; font-size: 12.5px; gap: 6px; }
           .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
