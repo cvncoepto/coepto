@@ -487,68 +487,53 @@ export default function App() {
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
 
-        .tpc-landing { text-align: center; padding: 48px 16px 24px; overflow-y: auto; }
-        .tpc-landing-sub { font-size: 13.5px; color: var(--muted); margin: 0 0 28px; }
-        .tpc-landing-cards {
-          display: flex; gap: 8px; max-width: 660px; margin: 0 auto; padding: 10px;
-          border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
-          box-shadow: 0 1px 3px rgba(16,24,40,0.06);
-        }
+        .tpc-landing { text-align: center; padding: 56px 16px 24px; overflow-y: auto; }
+        .tpc-landing-sub { font-size: 14px; color: var(--muted); margin: 0 0 28px; }
+        .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          flex: 1; min-width: 0; position: relative;
-          padding: 0; border: none; border-radius: 10px; overflow: hidden;
-          text-align: left; cursor: pointer; transition: filter .12s;
-          display: flex; flex-direction: column;
+          min-width: 176px; padding: 24px 26px; background: var(--surface);
+          border: 1px solid var(--border); border-top: 4px solid transparent; border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+          cursor: pointer; text-align: left; transition: transform .12s, box-shadow .15s;
         }
-        .tpc-landing-card:hover { filter: brightness(1.04); }
-        .tpc-landing-card-header {
-          font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: #fff;
-          padding: 18px 22px 8px; text-shadow: 0 1px 3px rgba(0,0,0,0.35);
-        }
-        .tpc-landing-card-body { font-size: 12px; padding: 2px 22px 18px; font-weight: 500; }
-        .tpc-landing-card-CHUC .tpc-landing-card-body { color: #2E5AAC; }
-        .tpc-landing-card-TUNG .tpc-landing-card-body { color: #C2410C; }
-        .tpc-landing-card-TRUONG .tpc-landing-card-body { color: #0E7490; }
-        .tpc-landing-card-CHUC { background: linear-gradient(180deg, #2E5AAC 0%, #EAF0FC 80%); }
-        .tpc-landing-card-TUNG { background: linear-gradient(180deg, #C2410C 0%, #FBEAE0 80%); }
-        .tpc-landing-card-TRUONG { background: linear-gradient(180deg, #0E7490 0%, #E1F1F5 80%); }
-        
-        .tpc-stats-wrap {
-          padding: 1.5px; border-radius: 16px; margin-top: 14px; margin-bottom: 14px; flex-shrink: 0;
-          background: linear-gradient(120deg, rgba(52,211,153,0.9) 0%, rgba(52,211,153,0.35) 55%, rgba(52,211,153,0) 100%);
-        }
+        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,24,40,0.1); }
+        .tpc-landing-card-header { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; }
+        .tpc-landing-card-body { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+        .tpc-landing-card-CHUC { border-top-color: #2E5AAC; }
+        .tpc-landing-card-CHUC .tpc-landing-card-header { color: #2E5AAC; }
+        .tpc-landing-card-TUNG { border-top-color: #C2410C; }
+        .tpc-landing-card-TUNG .tpc-landing-card-header { color: #C2410C; }
+        .tpc-landing-card-TRUONG { border-top-color: #0E7490; }
+        .tpc-landing-card-TRUONG .tpc-landing-card-header { color: #0E7490; }
+
         .tpc-stats {
-          display: flex; gap: 10px; padding: 16px; border-radius: 15px;
-          background: linear-gradient(120deg, rgba(52,211,153,0.15) 0%, var(--bg) 55%);
+          display: flex; margin-bottom: 16px; flex-shrink: 0;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04); overflow: hidden;
         }
         .tpc-stat-card {
-          flex: 1; min-width: 0; position: relative;
-          background: transparent; border: none;
-          border-radius: 8px;
-          padding: 6px 14px 14px; cursor: pointer; text-align: left; display: flex; flex-direction: column;
+          flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px;
+          border: none; border-right: 1px solid var(--border); background: transparent;
+          padding: 16px 20px; cursor: pointer; text-align: left;
           transition: background-color .15s;
         }
-        .tpc-stat-card:hover { background: rgba(16,24,40,0.04); }
-        .tpc-stat-card.active { background: rgba(16,24,40,0.07); }
-        .tpc-stat-accent {
-          position: absolute; top: -18px; left: 6px; right: 6px; height: 6px; border-radius: 4px;
-        }
-        .tpc-stat-label {
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: var(--muted);
-        }
-        .tpc-stat-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 8px; }
-        .tpc-stat-total .tpc-stat-accent { background: var(--gold); }
+        .tpc-stat-card:last-child { border-right: none; }
+        .tpc-stat-card:hover { background: var(--canvas); }
+        .tpc-stat-card.active { background: var(--canvas); }
+        .tpc-stat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .tpc-stat-text { display: flex; flex-direction: column; min-width: 0; }
+        .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+        .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 1px; }
+        .tpc-stat-total .tpc-stat-dot { background: var(--gold); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed .tpc-stat-accent { background: var(--green); }
+        .tpc-stat-completed .tpc-stat-dot { background: var(--green); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue .tpc-stat-accent { background: var(--red); }
+        .tpc-stat-overdue .tpc-stat-dot { background: var(--red); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
-          display: flex; gap: 4px; padding: 6px; margin-bottom: 20px; flex-shrink: 0;
-          background: rgba(16,24,40,0.045); border: 1px solid rgba(16,24,40,0.07);
-          border-radius: 999px; width: fit-content; max-width: 100%;
+          display: flex; gap: 22px; margin-bottom: 20px; flex-shrink: 0;
+          border-bottom: 1px solid var(--border);
         }
         .tpc-locked-group-label {
           font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
@@ -557,20 +542,26 @@ export default function App() {
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          border: none; border-radius: 999px; background: transparent;
-          padding: 10px 18px; cursor: pointer; white-space: nowrap;
+          border: none; background: transparent; cursor: pointer; white-space: nowrap;
           display: flex; align-items: center; gap: 8px;
+          padding: 11px 2px 10px; margin-bottom: -1px;
           font-size: 14px; font-weight: 600; color: var(--muted);
-          transition: background-color .15s, color .15s;
+          border-bottom: 2px solid transparent;
+          transition: color .15s, border-color .15s;
         }
-        .tpc-tab:hover { background: rgba(16,24,40,0.06); color: var(--ink); }
+        .tpc-tab:hover { color: var(--ink); }
         .tpc-tab-count {
-          font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
-          background: rgba(16,24,40,0.08); color: inherit;
+          font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+          background: var(--canvas); color: var(--muted);
         }
-        .tpc-tab.active { background: #34D399; color: #0B3B2A; box-shadow: 0 1px 4px rgba(52,211,153,0.4); }
-        .tpc-tab.active .tpc-tab-count { background: rgba(11,59,42,0.15); }
-        .tpc-tab.active:hover { filter: brightness(0.97); }
+        .tpc-tab-ALL.active { color: var(--navy); border-bottom-color: var(--navy); }
+        .tpc-tab-ALL.active .tpc-tab-count { background: var(--navy); color: #fff; }
+        .tpc-tab-CHUC.active { color: #2E5AAC; border-bottom-color: #2E5AAC; }
+        .tpc-tab-CHUC.active .tpc-tab-count { background: #2E5AAC; color: #fff; }
+        .tpc-tab-TUNG.active { color: #C2410C; border-bottom-color: #C2410C; }
+        .tpc-tab-TUNG.active .tpc-tab-count { background: #C2410C; color: #fff; }
+        .tpc-tab-TRUONG.active { color: #0E7490; border-bottom-color: #0E7490; }
+        .tpc-tab-TRUONG.active .tpc-tab-count { background: #0E7490; color: #fff; }
 
         .tpc-toolbar {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -705,15 +696,15 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-stats-wrap { margin-bottom: 10px; border-radius: 13px; }
-          .tpc-stats { gap: 6px; padding: 14px 8px 8px; border-radius: 11.5px; }
-          .tpc-stat-card { padding: 6px 9px 10px; text-align: center; }
-          .tpc-stat-accent { top: -7px; }
-          .tpc-stat-label { font-size: 8.5px; }
-          .tpc-stat-value { font-size: 19px; margin-top: 4px; }
+          .tpc-stats { flex-direction: column; margin-bottom: 12px; }
+          .tpc-stat-card { border-right: none; border-bottom: 1px solid var(--border); padding: 11px 14px; }
+          .tpc-stat-card:last-child { border-bottom: none; }
+          .tpc-stat-dot { width: 8px; height: 8px; }
+          .tpc-stat-label { font-size: 11px; }
+          .tpc-stat-value { font-size: 18px; }
 
-          .tpc-tabs { margin-bottom: 12px; max-width: 100%; overflow-x: auto; }
-          .tpc-tab { padding: 8px 13px; font-size: 12px; gap: 5px; }
+          .tpc-tabs { gap: 16px; margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
+          .tpc-tab { padding: 9px 1px 8px; font-size: 12.5px; gap: 6px; }
           .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
@@ -743,16 +734,11 @@ export default function App() {
           .tpc-table-header { padding: 9px 14px; font-size: 12px; }
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
-          .tpc-landing { padding: 24px 12px 16px; }
-          .tpc-landing-cards { flex-direction: column; max-width: 320px; }
-          .tpc-landing-card { border-right: none; border-bottom: 1px solid rgba(16,24,40,0.08); }
-          .tpc-landing-card:last-child { border-bottom: none; }
-          .tpc-landing-card-header { padding: 16px 20px 6px; }
-          .tpc-landing-card-body { padding: 2px 20px 16px; }
+          .tpc-landing { padding: 32px 12px 16px; }
+          .tpc-landing-cards { flex-direction: column; max-width: 320px; margin: 0 auto; }
         }
 
         @media (max-width: 420px) {
-          .tpc-stat-card { padding: 6px 7px; min-height: 48px; }
           .tpc-modal { padding: 18px; }
         }
       `}</style>
@@ -814,27 +800,31 @@ export default function App() {
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
         {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
-        <div className="tpc-stats-wrap">
-          <div className="tpc-stats">
-            <button
-              className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
-              onClick={() => setActiveStatus("incomplete")}
-            >
-              <span className="tpc-stat-accent" />
-              <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
-            </button>
-            <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-              <span className="tpc-stat-accent" />
-              <div className="tpc-stat-label">Hoàn thành</div>
-              <div className="tpc-stat-value tpc-num">{completedCount}</div>
-            </button>
-            <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-              <span className="tpc-stat-accent" />
-              <div className="tpc-stat-label">Quá hạn</div>
-              <div className="tpc-stat-value tpc-num">{overdueCount}</div>
-            </button>
-          </div>
+        <div className="tpc-stats">
+          <button
+            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+            onClick={() => setActiveStatus("incomplete")}
+          >
+            <span className="tpc-stat-dot" />
+            <span className="tpc-stat-text">
+              <span className="tpc-stat-label">Công việc</span>
+              <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
+            </span>
+          </button>
+          <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
+            <span className="tpc-stat-dot" />
+            <span className="tpc-stat-text">
+              <span className="tpc-stat-label">Hoàn thành</span>
+              <span className="tpc-stat-value tpc-num">{completedCount}</span>
+            </span>
+          </button>
+          <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
+            <span className="tpc-stat-dot" />
+            <span className="tpc-stat-text">
+              <span className="tpc-stat-label">Quá hạn</span>
+              <span className="tpc-stat-value tpc-num">{overdueCount}</span>
+            </span>
+          </button>
         </div>
 
         {isLockedViewer ? (
