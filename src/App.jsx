@@ -507,51 +507,50 @@ export default function App() {
         .tpc-landing-card-TRUONG { border-top-color: #0E7490; }
         .tpc-landing-card-TRUONG .tpc-landing-card-header { color: #0E7490; }
 
-        .tpc-stats {
-          display: flex; margin-bottom: 16px; flex-shrink: 0;
+        .tpc-summary-card {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
           box-shadow: 0 1px 2px rgba(16,24,40,0.04); overflow: hidden;
+          margin-bottom: 16px; flex-shrink: 0;
+        }
+        .tpc-stats {
+          display: flex; border-bottom: 1px solid var(--border);
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; display: flex; flex-direction: column;
           border: none; border-top: 4px solid transparent; border-right: 1px solid var(--border);
-          background: transparent;
           padding: 14px 20px 16px; cursor: pointer; text-align: left;
-          transition: background-color .15s;
+          transition: filter .15s;
         }
         .tpc-stat-card:last-child { border-right: none; }
-        .tpc-stat-card:hover { background: var(--canvas); }
-        .tpc-stat-card.active { background: var(--canvas); }
+        .tpc-stat-card:hover { filter: brightness(0.97); }
+        .tpc-stat-card.active { filter: brightness(0.94); }
         .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
         .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
-        .tpc-stat-total { border-top-color: var(--gold); }
+        .tpc-stat-total { border-top-color: var(--gold); background: var(--gold-bg); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed { border-top-color: var(--green); }
+        .tpc-stat-completed { border-top-color: var(--green); background: var(--green-bg); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue { border-top-color: var(--red); }
+        .tpc-stat-overdue { border-top-color: var(--red); background: var(--red-bg); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
-          display: flex; gap: 8px; margin-bottom: 20px; flex-shrink: 0; flex-wrap: wrap;
+          display: flex; gap: 8px; padding: 14px 16px; flex-wrap: wrap;
         }
         .tpc-locked-group-label {
-          font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 11px 16px;
-          background: var(--surface); border: 1px solid var(--border); border-radius: 10px; flex-shrink: 0;
-          box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+          font-size: 13px; color: var(--muted); padding: 14px 16px;
         }
         .tpc-locked-group-label strong { color: var(--ink); }
         .tpc-tab {
-          border: none; background: var(--surface); cursor: pointer; white-space: nowrap;
+          border: none; background: var(--canvas); cursor: pointer; white-space: nowrap;
           display: flex; align-items: center; gap: 8px;
           padding: 10px 16px; border-radius: 8px;
           font-size: 14px; font-weight: 600; color: var(--muted);
-          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
           transition: background-color .15s, color .15s, box-shadow .15s;
         }
-        .tpc-tab:hover { background: var(--canvas); color: var(--ink); }
+        .tpc-tab:hover { background: #E4E7EC; color: var(--ink); }
         .tpc-tab-count {
           font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
-          background: var(--canvas); color: var(--muted);
+          background: rgba(16,24,40,0.08); color: var(--muted);
         }
         .tpc-tab-ALL.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(22,34,63,0.35); }
         .tpc-tab-ALL.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
@@ -695,13 +694,14 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-stats { flex-direction: column; margin-bottom: 12px; }
+          .tpc-summary-card { margin-bottom: 12px; }
+          .tpc-stats { flex-direction: column; border-bottom: none; }
           .tpc-stat-card { border-right: none; border-bottom: 1px solid var(--border); padding: 11px 14px; }
-          .tpc-stat-card:last-child { border-bottom: none; }
+          .tpc-stat-card:last-child { border-bottom: 1px solid var(--border); }
           .tpc-stat-label { font-size: 11px; }
           .tpc-stat-value { font-size: 18px; }
 
-          .tpc-tabs { gap: 16px; margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
+          .tpc-tabs { gap: 8px; padding: 12px; max-width: 100%; overflow-x: auto; }
           .tpc-tab { padding: 8px 12px; font-size: 12.5px; gap: 6px; }
           .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
@@ -798,45 +798,47 @@ export default function App() {
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
         {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
-        <div className="tpc-stats">
-          <button
-            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
-            onClick={() => setActiveStatus("incomplete")}
-          >
-            <span className="tpc-stat-label">Công việc</span>
-            <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <span className="tpc-stat-label">Hoàn thành</span>
-            <span className="tpc-stat-value tpc-num">{completedCount}</span>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <span className="tpc-stat-label">Quá hạn</span>
-            <span className="tpc-stat-value tpc-num">{overdueCount}</span>
-          </button>
-        </div>
-
-        {isLockedViewer ? (
-          <div className="tpc-locked-group-label">
-            Nhóm: <strong>{groupLabel(viewerName)}</strong>
-          </div>
-        ) : (
-          <div className="tpc-tabs">
-            <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-              Tất cả
-              <span className="tpc-tab-count">{tasks.filter((t) => getStatus(t) !== "completed").length}</span>
+        <div className="tpc-summary-card">
+          <div className="tpc-stats">
+            <button
+              className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+              onClick={() => setActiveStatus("incomplete")}
+            >
+              <span className="tpc-stat-label">Công việc</span>
+              <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
             </button>
-            {GROUPS.map((g) => {
-              const w = workload(g.key);
-              return (
-                <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                  {g.label}
-                  <span className="tpc-tab-count">{w.o + w.p}</span>
-                </button>
-              );
-            })}
+            <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
+              <span className="tpc-stat-label">Hoàn thành</span>
+              <span className="tpc-stat-value tpc-num">{completedCount}</span>
+            </button>
+            <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
+              <span className="tpc-stat-label">Quá hạn</span>
+              <span className="tpc-stat-value tpc-num">{overdueCount}</span>
+            </button>
           </div>
-        )}
+
+          {isLockedViewer ? (
+            <div className="tpc-locked-group-label">
+              Nhóm: <strong>{groupLabel(viewerName)}</strong>
+            </div>
+          ) : (
+            <div className="tpc-tabs">
+              <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+                Tất cả
+                <span className="tpc-tab-count">{tasks.filter((t) => getStatus(t) !== "completed").length}</span>
+              </button>
+              {GROUPS.map((g) => {
+                const w = workload(g.key);
+                return (
+                  <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                    {g.label}
+                    <span className="tpc-tab-count">{w.o + w.p}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {(() => {
           const filterToggleBtn = (
