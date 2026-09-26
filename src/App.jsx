@@ -61,7 +61,18 @@ const SEED_TASKS = [
 ];
 
 const emptyForm = { group: "", task: "", moTa: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
-const emptyFilters = { ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+const emptyFilters = { tenCongViec: "", ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+
+// Bỏ dấu tiếng Việt, chữ thường để tìm kiếm không phân biệt dấu/hoa thường
+function normalizeText(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .trim();
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -188,6 +199,7 @@ export default function App() {
       } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
         return false;
       }
+      if (filters.tenCongViec.trim() && !normalizeText(t.task).includes(normalizeText(filters.tenCongViec))) return false;
       if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
       if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
       if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
@@ -346,7 +358,8 @@ export default function App() {
   };
 
   const clearFilters = () => setFilters(emptyFilters);
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const activeFilterCount = Object.values(filters).filter((v) => String(v).trim()).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const workload = (groupKey) => {
     const gt = tasks.filter((t) => t.group === groupKey);
@@ -865,7 +878,7 @@ export default function App() {
         {(() => {
           const filterToggleBtn = (
             <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
-              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{activeFilterCount}</span>}
               <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
             </button>
           );
@@ -890,6 +903,10 @@ export default function App() {
           );
           const filterFields = showFilters && (
             <>
+              <div className="tpc-filter-group">
+                <label>Tên công việc</label>
+                <input type="search" className="tpc-input" placeholder="Nhập tên cần tìm" value={filters.tenCongViec} onChange={(e) => setFilters((f) => ({ ...f, tenCongViec: e.target.value }))} />
+              </div>
               <div className="tpc-filter-group">
                 <label>Ngày giao</label>
                 <input type="date" className="tpc-input" value={filters.ngayGiao} onChange={(e) => setFilters((f) => ({ ...f, ngayGiao: e.target.value }))} />
