@@ -521,7 +521,7 @@ export default function App() {
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; display: flex; flex-direction: column;
-          background: var(--surface); border: 1px solid var(--border); border-top: 3px solid transparent;
+          background: var(--surface); border: 1px solid var(--border);
           border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
           padding: 12px 16px 14px; cursor: pointer; text-align: left;
           transition: box-shadow .15s, transform .12s;
@@ -530,11 +530,8 @@ export default function App() {
         .tpc-stat-card.active { box-shadow: 0 3px 12px rgba(16,24,40,0.12); transform: translateY(-1px); }
         .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
         .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
-        .tpc-stat-total { border-top-color: var(--gold); }
         .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
-        .tpc-stat-completed { border-top-color: var(--green); }
         .tpc-stat-completed .tpc-stat-value { color: var(--green); }
-        .tpc-stat-overdue { border-top-color: var(--red); }
         .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
 
         .tpc-tabs {
@@ -603,10 +600,13 @@ export default function App() {
         }
         .tpc-btn-secondary:hover { background: var(--canvas); }
         .tpc-btn-add {
-          background: var(--navy); color: #fff; border: none; border-radius: 8px;
+          background: #1F5C7A; color: #fff; border: none; border-radius: 8px;
           padding: 10px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+          box-shadow: 0 3px 8px rgba(31,92,122,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+          transition: background-color .15s, box-shadow .15s;
         }
-        .tpc-btn-add:hover { background: var(--navy-2); }
+        .tpc-btn-add:hover { background: #184B64; }
+        .tpc-btn-add:active { box-shadow: 0 1px 3px rgba(31,92,122,0.35); }
 
         .tpc-table-wrap {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
@@ -744,6 +744,23 @@ export default function App() {
 
         @media (max-width: 420px) {
           .tpc-modal { padding: 18px; }
+        }
+        /* Bóng nổi cho thẻ, nút và khung */
+        .tpc-summary-card, .tpc-toolbar, .tpc-table-wrap {
+          box-shadow: 0 4px 12px rgba(16,24,40,0.10), 0 1px 3px rgba(16,24,40,0.06);
+        }
+        .tpc-stat-card {
+          background: #F1ECE0; border-color: #DDD5C3;
+          box-shadow: 0 3px 8px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .tpc-stat-card:hover { box-shadow: 0 5px 12px rgba(16,24,40,0.16), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-stat-card.active { box-shadow: 0 6px 14px rgba(16,24,40,0.2), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-tab:not(.active) {
+          background: #fff;
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), 0 1px 2px rgba(16,24,40,0.06);
+        }
+        .tpc-btn-filter-toggle, .tpc-btn-secondary {
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
         }
       `}</style>
 
