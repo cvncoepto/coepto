@@ -514,10 +514,10 @@ export default function App() {
         .tpc-summary-card {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
           box-shadow: 0 1px 2px rgba(16,24,40,0.04);
-          margin-bottom: 16px; flex-shrink: 0; padding: 16px;
+          margin-bottom: 5px; flex-shrink: 0; padding: 5px;
         }
         .tpc-stats {
-          display: flex; gap: 10px; margin-bottom: 14px;
+          display: flex; gap: 10px; margin-bottom: 5px;
         }
         .tpc-stat-card {
           flex: 1; min-width: 0; display: flex; flex-direction: column;
@@ -569,7 +569,7 @@ export default function App() {
 
         .tpc-toolbar {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-          padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+          padding: 14px 16px; margin-bottom: 5px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
           flex-shrink: 0; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
         .tpc-btn-filter-toggle {
@@ -632,7 +632,7 @@ export default function App() {
         .tpc-table th.tpc-col-task, .tpc-table td.tpc-col-task { white-space: normal; }
         .tpc-table thead th {
           text-align: left; font-size: 12.5px;
-          color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border);
+          color: var(--muted); font-weight: 600; padding: 6px 12px; border-bottom: 1px solid var(--border);
           background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
         .tpc-th-sortable { cursor: pointer; user-select: none; }
@@ -640,15 +640,15 @@ export default function App() {
         .tpc-sort-arrow { color: var(--blue); }
         .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
         .tpc-completed-toggle-row:hover { background: #F0F2F5; }
-        .tpc-completed-toggle-row td { padding: 7px 12px; }
+        .tpc-completed-toggle-row td { padding: 5px 12px; }
         .tpc-completed-toggle { font-size: 12.5px; font-weight: 600; color: var(--muted); }
-        .tpc-table tbody td { padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tpc-table tbody td { padding: 5px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
         .tpc-task-name { font-weight: 500; color: var(--ink); cursor: pointer; }
         .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
         .tpc-desc-caret { color: var(--blue); font-size: 10px; flex-shrink: 0; }
-        .tpc-desc-row td { background: #FAFBFC; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px; border-bottom: 1px solid var(--border); }
         .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
         .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
@@ -701,8 +701,8 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-summary-card { margin-bottom: 10px; padding: 10px; }
-          .tpc-stats { flex-direction: row; gap: 6px; margin-bottom: 10px; }
+          .tpc-summary-card { margin-bottom: 5px; padding: 5px; }
+          .tpc-stats { flex-direction: row; gap: 6px; margin-bottom: 5px; }
           .tpc-stat-card { min-width: 0; padding: 8px 8px 9px; }
           .tpc-stat-label { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .tpc-stat-value { font-size: 16px; margin-top: 2px; }
