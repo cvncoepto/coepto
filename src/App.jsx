@@ -509,20 +509,32 @@ export default function App() {
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
           min-width: 176px; padding: 24px 26px; background: var(--surface);
-          border: 1px solid var(--border); border-top: 5px solid transparent;
-          border-radius: 0 0 12px 12px;
-          box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+          border: 2px solid var(--border); border-radius: 12px;
           cursor: pointer; text-align: left; transition: transform .12s, box-shadow .15s;
         }
-        .tpc-landing-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,24,40,0.1); }
+        .tpc-landing-card:hover { transform: translateY(-2px); }
+        .tpc-landing-card:active { transform: translateY(0); }
         .tpc-landing-card-header { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; }
         .tpc-landing-card-body { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-        .tpc-landing-card-CHUC { border-top-color: #2E5AAC; }
+        /* Nền màu nhóm trong suốt, viền đậm cùng màu, đổ bóng cùng tông */
+        .tpc-landing-card-CHUC {
+          background: rgba(46,90,172,0.08); border-color: #2E5AAC;
+          box-shadow: 0 6px 16px rgba(46,90,172,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
         .tpc-landing-card-CHUC .tpc-landing-card-header { color: #2E5AAC; }
-        .tpc-landing-card-TUNG { border-top-color: #C2410C; }
+        .tpc-landing-card-CHUC:hover { background: rgba(46,90,172,0.12); box-shadow: 0 10px 24px rgba(46,90,172,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TUNG {
+          background: rgba(194,65,12,0.08); border-color: #C2410C;
+          box-shadow: 0 6px 16px rgba(194,65,12,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
         .tpc-landing-card-TUNG .tpc-landing-card-header { color: #C2410C; }
-        .tpc-landing-card-TRUONG { border-top-color: #0E7490; }
+        .tpc-landing-card-TUNG:hover { background: rgba(194,65,12,0.12); box-shadow: 0 10px 24px rgba(194,65,12,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TRUONG {
+          background: rgba(14,116,144,0.08); border-color: #0E7490;
+          box-shadow: 0 6px 16px rgba(14,116,144,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
         .tpc-landing-card-TRUONG .tpc-landing-card-header { color: #0E7490; }
+        .tpc-landing-card-TRUONG:hover { background: rgba(14,116,144,0.12); box-shadow: 0 10px 24px rgba(14,116,144,0.3), 0 3px 6px rgba(16,24,40,0.1); }
 
         .tpc-summary-card {
           background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
