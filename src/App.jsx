@@ -9,7 +9,11 @@ const GROUPS = [
   { key: "TUNG", label: "TÙNG" },
   { key: "TRUONG", label: "TRƯỜNG" },
 ];
-const groupLabel = (k) => GROUPS.find((g) => g.key === k)?.label || k;
+// Nhóm riêng cho Giám sát — không hiện trên màn hình chọn tên, chỉ hiện trong tab
+// nhóm sau khi Giám sát đăng nhập (vì chỉ Giám sát mới thấy dashboard ở dạng "mở khóa").
+const SUPERVISOR_GROUP = { key: "GIAMSAT", label: "GIÁM SÁT" };
+const ALL_GROUPS = [...GROUPS, SUPERVISOR_GROUP];
+const groupLabel = (k) => ALL_GROUPS.find((g) => g.key === k)?.label || k;
 
 const SUPERVISOR_ROLE = "giam_sat";
 
@@ -46,18 +50,29 @@ const STATUS_META = {
 const genId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const SEED_TASKS = [
-  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
-  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
-  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
+  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", moTa: "Tổng hợp số liệu bán hàng và tiến độ công việc trong tuần, gửi cho Giám sát trước 17h thứ Sáu.", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", moTa: "Gọi điện xác nhận lại đơn hàng và thời gian giao dự kiến với khách hàng A.", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", moTa: "", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
+  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", moTa: "Đối chiếu số lượng thực tế trong kho với sổ sách, báo cáo chênh lệch (nếu có).", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
+  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", moTa: "Hệ thống bị treo khi khách bấm xác nhận đơn — cần phối hợp với bên IT kiểm tra log lỗi.", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", moTa: "", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", moTa: "Xây dựng kế hoạch quảng bá cho chương trình khuyến mãi tháng tới, trình duyệt trước ngày 10.", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", moTa: "", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
 ];
 
-const emptyForm = { group: "", task: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
-const emptyFilters = { ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+const emptyForm = { group: "", task: "", moTa: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
+const emptyFilters = { tenCongViec: "", ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+
+// Bỏ dấu tiếng Việt, chữ thường để tìm kiếm không phân biệt dấu/hoa thường
+function normalizeText(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .trim();
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -120,8 +135,16 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [sortField, setSortField] = useState("ngayGiao"); // "ngayGiao" | "task" | "ngayHoanThanhDuKien"
-  const [sortDir, setSortDir] = useState("desc"); // "asc" | "desc"
+  const [sortDir, setSortDir] = useState("desc");
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [importInfo, setImportInfo] = useState("");
+  const csvFileInputRef = useRef(null);
+
+  const isLockedViewer = !isSupervisor && !!viewerName;
+  useEffect(() => {
+    if (isLockedViewer) setActiveGroup(viewerName);
+  }, [isLockedViewer, viewerName]);
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -132,10 +155,14 @@ export default function App() {
     }
   };
 
-  const isLockedViewer = !isSupervisor && !!viewerName;
-  useEffect(() => {
-    if (isLockedViewer) setActiveGroup(viewerName);
-  }, [isLockedViewer, viewerName]);
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +199,7 @@ export default function App() {
       } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
         return false;
       }
+      if (filters.tenCongViec.trim() && !normalizeText(t.task).includes(normalizeText(filters.tenCongViec))) return false;
       if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
       if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
       if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
@@ -191,7 +219,6 @@ export default function App() {
     return sortDir === "asc" ? cmp : -cmp;
   };
 
-  // Công việc CHƯA hoàn thành: quá hạn luôn lên đầu, trong từng nhóm sắp xếp theo sortField/sortDir.
   const incompleteTasks = useMemo(() => {
     return baseFiltered
       .filter((t) => getStatus(t) !== "completed")
@@ -203,7 +230,6 @@ export default function App() {
       });
   }, [baseFiltered, sortField, sortDir]);
 
-  // Công việc ĐÃ hoàn thành: thu gọn riêng, mở ra khi cần.
   const completedTasks = useMemo(() => {
     return baseFiltered
       .filter((t) => getStatus(t) === "completed")
@@ -224,7 +250,14 @@ export default function App() {
   };
   const openEditForm = (t) => {
     setEditingId(t.id);
-    setForm({ group: t.group, task: t.task, ngayGiao: t.ngayGiao, ngayHoanThanhDuKien: t.ngayHoanThanhDuKien, ngayHoanThanh: t.ngayHoanThanh });
+    setForm({
+      group: t.group,
+      task: t.task,
+      moTa: t.moTa || "",
+      ngayGiao: t.ngayGiao,
+      ngayHoanThanhDuKien: t.ngayHoanThanhDuKien,
+      ngayHoanThanh: t.ngayHoanThanh,
+    });
     setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
@@ -233,7 +266,7 @@ export default function App() {
     if (!form.group || !form.task.trim() || !form.ngayGiao || !form.ngayHoanThanhDuKien) return;
     const nextTasks = editingId
       ? tasks.map((t) => (t.id === editingId ? { ...t, ...form } : t))
-      : [...tasks, { id: genId(), ...form }];
+      : [...tasks, { id: genId(), hoanThanhBoi: "", ...form }];
 
     setSaving(true);
     setSaveError("");
@@ -264,9 +297,6 @@ export default function App() {
     }
   };
 
-  const csvFileInputRef = useRef(null);
-  const [importInfo, setImportInfo] = useState("");
-
   const handleImportCsvClick = () => {
     setSaveError("");
     setImportInfo("");
@@ -275,11 +305,11 @@ export default function App() {
 
   const handleImportCsvFile = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // cho phép chọn lại cùng file lần sau
+    e.target.value = "";
     if (!file) return;
 
     const text = await file.text();
-    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: GROUPS, genId });
+    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: ALL_GROUPS, genId });
 
     if (importedTasks.length === 0) {
       setSaveError(errors[0] || "Không đọc được công việc nào hợp lệ từ file này.");
@@ -310,7 +340,6 @@ export default function App() {
     }
   };
 
-
   const toggleComplete = async (t) => {
     const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
     const willComplete = !t.ngayHoanThanh;
@@ -329,7 +358,8 @@ export default function App() {
   };
 
   const clearFilters = () => setFilters(emptyFilters);
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const activeFilterCount = Object.values(filters).filter((v) => String(v).trim()).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const workload = (groupKey) => {
     const gt = tasks.filter((t) => t.group === groupKey);
@@ -342,36 +372,53 @@ export default function App() {
   const renderTaskRow = (t) => {
     const st = getStatus(t);
     const meta = STATUS_META[st];
+    const isExpanded = expandedIds.has(t.id);
     return (
-      <tr key={t.id}>
-        <td className="tpc-task-name tpc-col-task">{t.task}</td>
-        <td><span className="tpc-group-pill">{groupLabel(t.group)}</span></td>
-        <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
-        <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
-        <td>
-          <label className="tpc-done-cell">
-            <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
-            <span className="tpc-done-info">
-              <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
-              {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+      <React.Fragment key={t.id}>
+        <tr className={isExpanded ? "tpc-row-expanded" : ""}>
+          <td className="tpc-task-name tpc-col-task" onClick={() => toggleExpand(t.id)}>
+            <span className="tpc-task-name-inner">
+              <span className="tpc-desc-caret">{isExpanded ? "▾" : "▸"}</span>
+              {t.task}
             </span>
-          </label>
-        </td>
-        <td>
-          <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
-            <span className="tpc-status-dot" style={{ background: meta.color }} />
-            {meta.label}
-          </span>
-        </td>
-        {isSupervisor && (
-          <td>
-            <div className="tpc-actions">
-              <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
-              <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
-            </div>
           </td>
+          <td><span className={`tpc-group-pill tpc-group-pill-${t.group}`}>{groupLabel(t.group)}</span></td>
+          <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
+          <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
+          <td>
+            <label className="tpc-done-cell">
+              <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
+              <span className="tpc-done-info">
+                <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+              </span>
+            </label>
+          </td>
+          <td>
+            <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
+              <span className="tpc-status-dot" style={{ background: meta.color }} />
+              {meta.label}
+            </span>
+          </td>
+          {isSupervisor && (
+            <td>
+              <div className="tpc-actions">
+                <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
+                <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
+              </div>
+            </td>
+          )}
+        </tr>
+        {isExpanded && (
+          <tr className="tpc-desc-row">
+            <td colSpan={isSupervisor ? 7 : 6}>
+              <div className="tpc-desc-content">
+                {t.moTa ? t.moTa : <span className="tpc-desc-empty">Chưa có mô tả cho công việc này.</span>}
+              </div>
+            </td>
+          </tr>
         )}
-      </tr>
+      </React.Fragment>
     );
   };
 
@@ -389,18 +436,20 @@ export default function App() {
           --navy: #16223F;
           --navy-2: #1F2F55;
           --blue: #2E5AAC;
-          --ink: #101828;
-          --muted: #667085;
-          --border: #E4E7EC;
+          --ink: #13181F;
+          --muted: #5B6472;
+          --border: #E3E5EA;
           --bg: #F3F5F9;
+          --canvas: #EDF0F5;
           --surface: #FFFFFF;
-          --green: #12805C;
+          --green: #157A56;
           --green-bg: #E7F6EF;
-          --red: #C4302B;
+          --red: #C13A2E;
           --red-bg: #FDECEC;
           --amber: #946200;
           --amber-bg: #FBF0DD;
-          --gold: #D8B65A;
+          --gold: #C99A3E;
+          --gold-ink: #8A6A22;
           --gold-bg: #FAF1DC;
           font-family: 'Inter', -apple-system, sans-serif;
           background: var(--bg);
@@ -432,6 +481,7 @@ export default function App() {
           color: #fff; font-size: 12px; font-weight: 600;
         }
         .tpc-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; }
+        .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tpc-btn-login {
           background: #fff; color: var(--navy); border: none; border-radius: 8px;
           padding: 9px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
@@ -450,72 +500,106 @@ export default function App() {
           overflow: hidden;
         }
 
-        .tpc-banner {
-          padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px;
-        }
+        .tpc-banner { padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px; }
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
 
-        .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 11px; width: 100%; }
-        .tpc-stat-card {
-          width: 100%; min-width: 132px; min-height: 56px; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-          transition: transform .1s, box-shadow .15s; text-align: center; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; gap: 9px;
-          border-left: 3px solid transparent;
-        }
-        .tpc-stat-card:hover { transform: translateY(-1px); }
-        .tpc-stat-card.active { box-shadow: 0 0 0 3px rgba(16,24,40,0.18); }
-        .tpc-stat-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.9; }
-        .tpc-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; line-height: 1; }
-        .tpc-stat-total { background: var(--gold); border-left: none; }
-        .tpc-stat-total .tpc-stat-label, .tpc-stat-total .tpc-stat-value { color: #4A3A0E; }
-        .tpc-stat-completed { background: var(--green); border-left: none; }
-        .tpc-stat-completed .tpc-stat-label, .tpc-stat-completed .tpc-stat-value { color: #fff; }
-        .tpc-stat-overdue { background: var(--red); border-left: none; }
-        .tpc-stat-overdue .tpc-stat-label, .tpc-stat-overdue .tpc-stat-value { color: #fff; }
-
-        .tpc-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-        .tpc-locked-group-label {
-          font-size: 13px; color: var(--muted); margin-bottom: 16px; padding: 10px 14px;
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-        }
-        .tpc-locked-group-label strong { color: var(--ink); }
-
-        .tpc-landing { text-align: center; padding: 40px 16px 24px; overflow-y: auto; }
-        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+        .tpc-landing { text-align: center; padding: 56px 16px 24px; overflow-y: auto; }
+        .tpc-landing-sub { font-size: 14px; color: var(--muted); margin: 0 0 28px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
-          background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
-          color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
+          min-width: 176px; padding: 24px 26px; background: var(--surface);
+          border: 2px solid var(--border); border-radius: 12px;
+          cursor: pointer; text-align: left; transition: transform .12s, box-shadow .15s;
         }
         .tpc-landing-card:hover { transform: translateY(-2px); }
-        .tpc-landing-card-CHUC { background: #2E5AAC; border-color: #2E5AAC; color: #fff; }
-        .tpc-landing-card-CHUC:hover { background: #1F3F7A; border-color: #1F3F7A; box-shadow: 0 8px 20px rgba(46,90,172,0.35); }
-        .tpc-landing-card-TUNG { background: #C2410C; border-color: #C2410C; color: #fff; }
-        .tpc-landing-card-TUNG:hover { background: #9A3410; border-color: #9A3410; box-shadow: 0 8px 20px rgba(194,65,12,0.35); }
-        .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
-        .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
-        .tpc-tab {
-          flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-          padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
+        .tpc-landing-card:active { transform: translateY(0); }
+        .tpc-landing-card-header { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; }
+        .tpc-landing-card-body { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+        /* Nền màu nhóm trong suốt, viền đậm cùng màu, đổ bóng cùng tông */
+        .tpc-landing-card-CHUC {
+          background: rgba(46,90,172,0.08); border-color: #2E5AAC;
+          box-shadow: 0 6px 16px rgba(46,90,172,0.22), 0 2px 4px rgba(16,24,40,0.08);
         }
-        .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-        .tpc-tab-name { font-size: 12px; font-weight: 700; color: var(--ink); }
-        .tpc-tab-count { font-size: 11px; color: var(--muted); margin-top: 1px; }
-        .tpc-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 8px; background: #EEF0F3; }
-        .tpc-bar span { height: 100%; }
+        .tpc-landing-card-CHUC .tpc-landing-card-header { color: #2E5AAC; }
+        .tpc-landing-card-CHUC:hover { background: rgba(46,90,172,0.12); box-shadow: 0 10px 24px rgba(46,90,172,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TUNG {
+          background: rgba(194,65,12,0.08); border-color: #C2410C;
+          box-shadow: 0 6px 16px rgba(194,65,12,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
+        .tpc-landing-card-TUNG .tpc-landing-card-header { color: #C2410C; }
+        .tpc-landing-card-TUNG:hover { background: rgba(194,65,12,0.12); box-shadow: 0 10px 24px rgba(194,65,12,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TRUONG {
+          background: rgba(14,116,144,0.08); border-color: #0E7490;
+          box-shadow: 0 6px 16px rgba(14,116,144,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
+        .tpc-landing-card-TRUONG .tpc-landing-card-header { color: #0E7490; }
+        .tpc-landing-card-TRUONG:hover { background: rgba(14,116,144,0.12); box-shadow: 0 10px 24px rgba(14,116,144,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+
+        .tpc-summary-card {
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          margin-bottom: 5px; flex-shrink: 0; padding: 5px;
+        }
+        .tpc-stats {
+          display: flex; gap: 10px; margin-bottom: 5px;
+        }
+        .tpc-stat-card {
+          flex: 1; min-width: 0; display: flex; flex-direction: column;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+          padding: 12px 16px 14px; cursor: pointer; text-align: left;
+          transition: box-shadow .15s, transform .12s;
+        }
+        .tpc-stat-card:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.08); }
+        .tpc-stat-card.active { box-shadow: 0 3px 12px rgba(16,24,40,0.12); transform: translateY(-1px); }
+        .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+        .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
+        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
+        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
+        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
+
+        .tpc-tabs {
+          display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .tpc-locked-group-label {
+          font-size: 13px; color: var(--muted);
+        }
+        .tpc-locked-group-label strong { color: var(--ink); }
+        .tpc-tab {
+          border: none; background: var(--canvas); cursor: pointer; white-space: nowrap;
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 16px; border-radius: 8px;
+          font-size: 14px; font-weight: 600; color: var(--muted);
+          transition: background-color .15s, color .15s, box-shadow .15s;
+        }
+        .tpc-tab:hover { background: #E4E7EC; color: var(--ink); }
+        .tpc-tab-count {
+          font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+          background: rgba(16,24,40,0.08); color: var(--muted);
+        }
+        .tpc-tab-ALL.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(22,34,63,0.35); }
+        .tpc-tab-ALL.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-CHUC.active { background: #2E5AAC; color: #fff; box-shadow: 0 2px 8px rgba(46,90,172,0.35); }
+        .tpc-tab-CHUC.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TUNG.active { background: #C2410C; color: #fff; box-shadow: 0 2px 8px rgba(194,65,12,0.35); }
+        .tpc-tab-TUNG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TRUONG.active { background: #0E7490; color: #fff; box-shadow: 0 2px 8px rgba(14,116,144,0.35); }
+        .tpc-tab-TRUONG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-GIAMSAT.active { background: #5B21B6; color: #fff; box-shadow: 0 2px 8px rgba(91,33,182,0.35); }
+        .tpc-tab-GIAMSAT.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
 
         .tpc-toolbar {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
-          padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          padding: 14px 16px; margin-bottom: 5px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+          flex-shrink: 0; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
         .tpc-btn-filter-toggle {
           display: inline-flex; align-items: center; gap: 6px; background: #fff;
-          border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
-          font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+          border: 1px solid var(--border); border-radius: 8px; padding: 9px 13px;
+          font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer;
         }
-        .tpc-btn-filter-toggle:hover { background: #F5F6F8; }
+        .tpc-btn-filter-toggle:hover { background: var(--canvas); }
         .tpc-filter-badge {
           background: var(--blue); color: #fff; font-size: 10px; font-weight: 700;
           min-width: 16px; height: 16px; border-radius: 999px; display: inline-flex;
@@ -524,9 +608,9 @@ export default function App() {
         .tpc-filter-caret { font-size: 9px; color: var(--muted); margin-left: 2px; }
 
         .tpc-filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .tpc-filter-group label { font-size: 11px; color: var(--muted); font-weight: 600; }
+        .tpc-filter-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
         .tpc-input, .tpc-select {
-          border: 1.5px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12px;
+          border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12.5px;
           color: var(--ink); background: #fff; font-family: inherit;
         }
         .tpc-input:focus, .tpc-select:focus { outline: none; border-color: var(--blue); }
@@ -536,31 +620,44 @@ export default function App() {
         }
         .tpc-spacer { flex: 1; }
         .tpc-btn-secondary {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
-          padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
+          padding: 9px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
         }
-        .tpc-btn-secondary:hover { background: #F5F6F8; }
+        .tpc-btn-secondary:hover { background: var(--canvas); }
         .tpc-btn-add {
-          background: var(--navy); color: #fff; border: none; border-radius: 8px;
-          padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+          background: #1F5C7A; color: #fff; border: none; border-radius: 8px;
+          padding: 10px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+          box-shadow: 0 3px 8px rgba(31,92,122,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+          transition: background-color .15s, box-shadow .15s;
         }
-        .tpc-btn-add:hover { background: var(--navy-2); }
+        .tpc-btn-add:hover { background: #184B64; }
+        .tpc-btn-add:active { box-shadow: 0 1px 3px rgba(31,92,122,0.35); }
 
         .tpc-table-wrap {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
-          flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+          flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
-        .tpc-table-wrap::-webkit-scrollbar-track { background: #F3F5F9; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
+        .tpc-table-header {
+          flex-shrink: 0; background: var(--navy); color: #fff; font-size: 13px; font-weight: 700;
+          padding: 11px 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .tpc-table-header-count {
+          background: rgba(255,255,255,0.18); font-size: 11.5px; font-weight: 700; padding: 1px 8px;
+          border-radius: 999px;
+        }
+        .tpc-table-scroll { flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch; }
+        .tpc-table-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+        .tpc-table-scroll::-webkit-scrollbar-track { background: #F3F5F9; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
         table.tpc-table { width: 100%; border-collapse: collapse; }
         .tpc-table col.tpc-col-task { width: 100%; }
         .tpc-table th, .tpc-table td { white-space: nowrap; }
         .tpc-table th.tpc-col-task, .tpc-table td.tpc-col-task { white-space: normal; }
         .tpc-table thead th {
-          text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
-          color: var(--muted); font-weight: 700; padding: 10px 12px; border-bottom: 1.5px solid var(--border);
+          text-align: left; font-size: 12.5px;
+          color: var(--muted); font-weight: 600; padding: 6px 12px; border-bottom: 1px solid var(--border);
           background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
         .tpc-th-sortable { cursor: pointer; user-select: none; }
@@ -568,16 +665,25 @@ export default function App() {
         .tpc-sort-arrow { color: var(--blue); }
         .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
         .tpc-completed-toggle-row:hover { background: #F0F2F5; }
-        .tpc-completed-toggle-row td { padding: 10px 12px; }
-        .tpc-completed-toggle { font-size: 12px; font-weight: 700; color: var(--muted); }
-        .tpc-table tbody td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tpc-completed-toggle-row td { padding: 5px 12px; }
+        .tpc-completed-toggle { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+        .tpc-table tbody td { padding: 5px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
-        .tpc-task-name { font-weight: 600; color: var(--ink); }
+        .tpc-task-name { font-weight: 500; color: var(--ink); cursor: pointer; }
+        .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
+        .tpc-desc-caret { color: var(--blue); font-size: 10px; flex-shrink: 0; }
+        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
+        .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
-          display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+          display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
           background: #EEF1F8; color: var(--navy-2);
         }
+        .tpc-group-pill-CHUC { background: #E7EEFB; color: #2E5AAC; }
+        .tpc-group-pill-TUNG { background: #FBEAE0; color: #C2410C; }
+        .tpc-group-pill-TRUONG { background: #E1F1F5; color: #0E7490; }
+        .tpc-group-pill-GIAMSAT { background: #EFE7FA; color: #5B21B6; }
         .tpc-status-pill {
           display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
           padding: 4px 10px; border-radius: 999px;
@@ -589,7 +695,7 @@ export default function App() {
         .tpc-checkbox { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
         .tpc-actions { display: flex; gap: 6px; }
         .tpc-icon-btn {
-          border: 1.5px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
+          border: 1px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
           display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px;
         }
         .tpc-icon-btn:hover { background: #F5F6F8; }
@@ -600,17 +706,18 @@ export default function App() {
           position: fixed; inset: 0; background: rgba(16,24,40,0.45); display: flex; align-items: center;
           justify-content: center; z-index: 50; padding: 20px;
         }
-        .tpc-modal {
-          background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        }
+        .tpc-modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
         .tpc-modal h3 { font-family: 'Sora', sans-serif; font-size: 17px; margin: 0 0 16px; color: var(--ink); }
         .tpc-form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
-        .tpc-form-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
-        .tpc-form-row .tpc-input, .tpc-form-row .tpc-select { width: 100%; padding: 9px 10px; font-size: 13.5px; }
+        .tpc-form-row label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+        .tpc-form-row .tpc-input, .tpc-form-row .tpc-select, .tpc-form-row textarea {
+          width: 100%; padding: 9px 10px; font-size: 13.5px; font-family: inherit;
+          border: 1px solid var(--border); border-radius: 7px; color: var(--ink); resize: vertical;
+        }
+        .tpc-form-row textarea:focus { outline: none; border-color: var(--blue); }
         .tpc-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
         .tpc-btn-secondary-modal {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
           padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
         .tpc-btn-primary {
@@ -619,27 +726,15 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-landing { padding: 24px 12px 16px; }
-          .tpc-landing-cards { flex-direction: column; align-items: stretch; }
-          .tpc-landing-card { min-width: 0; padding: 20px; }
-          .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-          .tpc-stat-card {
-            min-width: 0; min-height: 52px; padding: 8px 9px; border-radius: 8px;
-            flex-direction: column; align-items: center; justify-content: center; border: none; text-align: center;
-          }
-          .tpc-stat-card:hover { transform: none; }
-          .tpc-stat-card.active { box-shadow: 0 0 0 2px rgba(16,24,40,0.35); }
-          .tpc-stat-label { font-size: 10px; }
-          .tpc-stat-value { font-size: 20px; margin-top: 2px; }
+          .tpc-summary-card { margin-bottom: 5px; padding: 5px; }
+          .tpc-stats { flex-direction: row; gap: 6px; margin-bottom: 5px; }
+          .tpc-stat-card { min-width: 0; padding: 8px 8px 9px; }
+          .tpc-stat-label { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-stat-value { font-size: 16px; margin-top: 2px; }
 
-          .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
-          .tpc-tab {
-            flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 4px; border: 1.5px solid var(--border); background: var(--surface);
-          }
-          .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-          .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
-          .tpc-bar { margin-top: 5px; }
+          .tpc-tabs { gap: 6px; max-width: 100%; overflow-x: auto; padding-bottom: 2px; }
+          .tpc-tab { padding: 7px 10px; font-size: 12px; gap: 5px; }
+          .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
           .tpc-header {
@@ -651,12 +746,11 @@ export default function App() {
           .tpc-header-titles { min-width: 0; flex: 1 1 auto; overflow: hidden; }
           .tpc-header-titles .tpc-title,
           .tpc-header-titles .tpc-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-auth-box { width: auto; flex-shrink: 0; }
+          .tpc-auth-box { width: auto; flex-shrink: 0; flex-wrap: nowrap; min-width: 0; }
           .tpc-badge { padding: 5px 8px; font-size: 9px; gap: 5px; max-width: 110px; min-width: 0; }
-          .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-          .tpc-auth-box { flex-wrap: nowrap; min-width: 0; }
           .tpc-btn-login, .tpc-btn-logout { padding: 6px 10px; font-size: 10px; }
           .tpc-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; }
+          .tpc-btn-filter-toggle { width: 100%; justify-content: space-between; padding: 8px 12px; }
           .tpc-toolbar-toprow { display: flex; flex-direction: row; gap: 8px; width: 100%; }
           .tpc-toolbar-toprow .tpc-btn-filter-toggle,
           .tpc-toolbar-toprow .tpc-btn-secondary { flex: 1; width: auto; justify-content: center; padding: 8px 10px; }
@@ -665,14 +759,33 @@ export default function App() {
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
           .tpc-btn-clear { align-self: flex-start; padding: 2px 4px; }
           .tpc-btn-add { width: 100%; padding: 8px 14px; }
-          .tpc-table-wrap { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-scroll { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-header { padding: 9px 14px; font-size: 12px; }
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
+          .tpc-landing { padding: 32px 12px 16px; }
+          .tpc-landing-cards { flex-direction: column; max-width: 320px; margin: 0 auto; }
         }
 
         @media (max-width: 420px) {
-          .tpc-stat-card { padding: 6px 7px; min-height: 48px; }
           .tpc-modal { padding: 18px; }
+        }
+        /* Bóng nổi cho thẻ, nút và khung */
+        .tpc-summary-card, .tpc-toolbar, .tpc-table-wrap {
+          box-shadow: 0 4px 12px rgba(16,24,40,0.10), 0 1px 3px rgba(16,24,40,0.06);
+        }
+        .tpc-stat-card {
+          background: #F1ECE0; border-color: #DDD5C3;
+          box-shadow: 0 3px 8px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .tpc-stat-card:hover { box-shadow: 0 5px 12px rgba(16,24,40,0.16), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-stat-card.active { box-shadow: 0 6px 14px rgba(16,24,40,0.2), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-tab:not(.active) {
+          background: #fff;
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), 0 1px 2px rgba(16,24,40,0.06);
+        }
+        .tpc-btn-filter-toggle, .tpc-btn-secondary {
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
         }
       `}</style>
 
@@ -715,7 +828,7 @@ export default function App() {
                   className={`tpc-landing-card tpc-landing-card-${g.key}`}
                   onClick={() => chooseViewerName(g.key)}
                 >
-                  {g.label}
+                  <div className="tpc-landing-card-header">{g.label}</div>
                 </button>
               ))}
             </div>
@@ -732,65 +845,52 @@ export default function App() {
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
         {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
 
-        <div className="tpc-stats">
-          <button
-            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
-            onClick={() => setActiveStatus("incomplete")}
-          >
-            <div>
-              <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <div>
-              <div className="tpc-stat-label">Hoàn thành</div>
-              <div className="tpc-stat-value tpc-num">{completedCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <div>
-              <div className="tpc-stat-label">Quá hạn</div>
-              <div className="tpc-stat-value tpc-num">{overdueCount}</div>
-            </div>
-          </button>
-        </div>
-
-        {isLockedViewer ? (
-          <div className="tpc-locked-group-label">
-            Nhóm: <strong>{groupLabel(viewerName)}</strong>
-          </div>
-        ) : (
-          <div className="tpc-tabs">
-            <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-              <div className="tpc-tab-name">Tất cả nhóm</div>
-              <div className="tpc-tab-count">
-                {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
-              </div>
+        <div className="tpc-summary-card">
+          <div className="tpc-stats">
+            <button
+              className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+              onClick={() => setActiveStatus("incomplete")}
+            >
+              <span className="tpc-stat-label">Công việc</span>
+              <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
             </button>
-            {GROUPS.map((g) => {
-              const w = workload(g.key);
-              return (
-                <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                  <div className="tpc-tab-name">{g.label}</div>
-                  <div className="tpc-tab-count">{w.o + w.p} công việc</div>
-                  {w.total > 0 && (
-                    <div className="tpc-bar">
-                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
-                      <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                      <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+            <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
+              <span className="tpc-stat-label">Hoàn thành</span>
+              <span className="tpc-stat-value tpc-num">{completedCount}</span>
+            </button>
+            <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
+              <span className="tpc-stat-label">Quá hạn</span>
+              <span className="tpc-stat-value tpc-num">{overdueCount}</span>
+            </button>
           </div>
-        )}
+
+          {isLockedViewer ? (
+            <div className="tpc-locked-group-label">
+              Nhóm: <strong>{groupLabel(viewerName)}</strong>
+            </div>
+          ) : (
+            <div className="tpc-tabs">
+              <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+                Tất cả
+                <span className="tpc-tab-count">{tasks.filter((t) => getStatus(t) !== "completed").length}</span>
+              </button>
+              {ALL_GROUPS.map((g) => {
+                const w = workload(g.key);
+                return (
+                  <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                    {g.label}
+                    <span className="tpc-tab-count">{w.o + w.p}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {(() => {
           const filterToggleBtn = (
             <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
-              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{activeFilterCount}</span>}
               <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
             </button>
           );
@@ -815,6 +915,10 @@ export default function App() {
           );
           const filterFields = showFilters && (
             <>
+              <div className="tpc-filter-group">
+                <label>Tên công việc</label>
+                <input type="search" className="tpc-input" placeholder="Nhập tên cần tìm" value={filters.tenCongViec} onChange={(e) => setFilters((f) => ({ ...f, tenCongViec: e.target.value }))} />
+              </div>
               <div className="tpc-filter-group">
                 <label>Ngày giao</label>
                 <input type="date" className="tpc-input" value={filters.ngayGiao} onChange={(e) => setFilters((f) => ({ ...f, ngayGiao: e.target.value }))} />
@@ -856,6 +960,11 @@ export default function App() {
         })()}
 
         <div className="tpc-table-wrap">
+          <div className="tpc-table-header">
+            Danh sách công việc
+            <span className="tpc-table-header-count">{incompleteTasks.length + completedTasks.length}</span>
+          </div>
+          <div className="tpc-table-scroll">
           {incompleteTasks.length === 0 && completedTasks.length === 0 ? (
             <div className="tpc-empty">Không có công việc nào khớp với bộ lọc hiện tại.</div>
           ) : (
@@ -900,6 +1009,7 @@ export default function App() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
           </>
         )}
@@ -914,7 +1024,7 @@ export default function App() {
               <label>Nhóm phụ trách</label>
               <select className="tpc-select" value={form.group} onChange={(e) => setForm((f) => ({ ...f, group: e.target.value }))}>
                 <option value="">— Chọn nhóm —</option>
-                {GROUPS.map((g) => (
+                {ALL_GROUPS.map((g) => (
                   <option key={g.key} value={g.key}>{g.label}</option>
                 ))}
               </select>
@@ -923,6 +1033,16 @@ export default function App() {
             <div className="tpc-form-row">
               <label>Công việc</label>
               <input className="tpc-input" placeholder="Nhập tên công việc" value={form.task} onChange={(e) => setForm((f) => ({ ...f, task: e.target.value }))} />
+            </div>
+
+            <div className="tpc-form-row">
+              <label>Mô tả công việc (không bắt buộc)</label>
+              <textarea
+                rows={3}
+                placeholder="Ghi chú chi tiết, hướng dẫn thêm cho công việc này..."
+                value={form.moTa}
+                onChange={(e) => setForm((f) => ({ ...f, moTa: e.target.value }))}
+              />
             </div>
 
             <div className="tpc-form-row">
