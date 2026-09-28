@@ -245,7 +245,9 @@ export default function App() {
 
   const openAddForm = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    // Đang xem nhóm nào thì chọn sẵn nhóm đó (vẫn đổi được trong form)
+    const defaultGroup = ALL_GROUPS.some((g) => g.key === activeGroup) ? activeGroup : "";
+    setForm({ ...emptyForm, group: defaultGroup });
     setShowForm(true);
   };
   const openEditForm = (t) => {
@@ -372,13 +374,21 @@ export default function App() {
   const renderTaskRow = (t) => {
     const st = getStatus(t);
     const meta = STATUS_META[st];
-    const isExpanded = expandedIds.has(t.id);
+    // Chỉ công việc có mô tả mới có mũi tên và mở ra được
+    const hasDesc = Boolean(t.moTa && t.moTa.trim());
+    const isExpanded = hasDesc && expandedIds.has(t.id);
     return (
       <React.Fragment key={t.id}>
         <tr className={isExpanded ? "tpc-row-expanded" : ""}>
-          <td className="tpc-task-name tpc-col-task" onClick={() => toggleExpand(t.id)}>
+          <td
+            className={`tpc-task-name tpc-col-task${hasDesc ? " has-desc" : ""}`}
+            onClick={hasDesc ? () => toggleExpand(t.id) : undefined}
+            title={hasDesc ? (isExpanded ? "Ẩn mô tả" : "Xem mô tả") : undefined}
+          >
             <span className="tpc-task-name-inner">
-              <span className="tpc-desc-caret">{isExpanded ? "▾" : "▸"}</span>
+              {hasDesc
+                ? <span className="tpc-desc-caret">{isExpanded ? "▾" : "▸"}</span>
+                : <span className="tpc-desc-caret tpc-desc-dot">•</span>}
               {t.task}
             </span>
           </td>
@@ -413,7 +423,7 @@ export default function App() {
           <tr className="tpc-desc-row">
             <td colSpan={isSupervisor ? 7 : 6}>
               <div className="tpc-desc-content">
-                {t.moTa ? t.moTa : <span className="tpc-desc-empty">Chưa có mô tả cho công việc này.</span>}
+                {t.moTa}
               </div>
             </td>
           </tr>
@@ -670,10 +680,12 @@ export default function App() {
         .tpc-table tbody td { padding: 5px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
-        .tpc-task-name { font-weight: 500; color: var(--ink); cursor: pointer; }
+        .tpc-task-name { font-weight: 500; color: var(--ink); cursor: default; }
+        .tpc-task-name.has-desc { cursor: pointer; }
         .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
-        .tpc-desc-caret { color: var(--blue); font-size: 10px; flex-shrink: 0; }
-        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-caret { color: var(--blue); font-size: 14px; line-height: 1; width: 12px; text-align: center; flex-shrink: 0; }
+        .tpc-desc-dot { color: var(--muted); opacity: 0.5; font-size: 12px; }
+        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px 5px 22px; border-bottom: 1px solid var(--border); }
         .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
         .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
