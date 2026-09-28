@@ -685,7 +685,7 @@ export default function App() {
         .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
         .tpc-desc-caret { color: var(--blue); font-size: 14px; line-height: 1; width: 12px; text-align: center; flex-shrink: 0; }
         .tpc-desc-dot { color: var(--muted); opacity: 0.5; font-size: 12px; }
-        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px 5px 22px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-row td { background: #FAFBFC; padding: 5px 16px 5px 42px; border-bottom: 1px solid var(--border); }
         .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
         .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
