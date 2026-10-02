@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { initIdentity, openLogin, logout, getRoles, getDisplayName } from "./identity";
-import { fetchTasks, replaceTasks, toggleTaskComplete } from "./api";
+import { fetchTasks, replaceTasks, setTasksComplete } from "./api";
 import { exportTasksToCsv } from "./exportCsv";
 import { importTasksFromCsv } from "./importCsv";
 
@@ -342,21 +342,48 @@ export default function App() {
     }
   };
 
-  const toggleComplete = async (t) => {
+  // Tick hoàn thành:
+  // - Cập nhật ngay trên màn hình, chỉ đụng tới đúng công việc được tick.
+  // - Các lần tick được gửi lần lượt (không chồng nhau), mỗi lần gửi kèm mọi thay đổi
+  //   trong ~2 phút gần đây. Lưu trữ Netlify có thể đọc ra dữ liệu cũ tới ~60 giây,
+  //   gửi kèm như vậy giúp lần ghi sau không xóa mất lần tick trước.
+  // - Không thay cả danh sách bằng dữ liệu server trả về (có thể là bản cũ).
+  const recentChangesRef = useRef(new Map());
+  const toggleQueueRef = useRef(Promise.resolve());
+  const RECENT_CHANGE_MS = 2 * 60 * 1000;
+
+  const toggleComplete = (t) => {
     const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
-    const willComplete = !t.ngayHoanThanh;
-    const optimistic = tasks.map((x) =>
-      x.id === t.id ? { ...x, ngayHoanThanh: willComplete ? todayIso() : "", hoanThanhBoi: willComplete ? byName : "" } : x
+    const done = !t.ngayHoanThanh;
+    const today = todayIso();
+    const prevState = { ngayHoanThanh: t.ngayHoanThanh || "", hoanThanhBoi: t.hoanThanhBoi || "" };
+
+    setTasks((cur) =>
+      cur.map((x) =>
+        x.id === t.id ? { ...x, ngayHoanThanh: done ? today : "", hoanThanhBoi: done ? byName : "" } : x
+      )
     );
-    setTasks(optimistic);
-    try {
-      const saved = await toggleTaskComplete(t.id, todayIso(), byName);
-      setTasks(saved);
-      setUsingDemoData(false);
-    } catch (e) {
-      setTasks(tasks);
-      setSaveError(e.message || "Cập nhật trạng thái thất bại.");
-    }
+    const change = { id: t.id, done, today, by: byName, at: Date.now() };
+    recentChangesRef.current.set(t.id, change);
+
+    toggleQueueRef.current = toggleQueueRef.current.then(async () => {
+      const now = Date.now();
+      for (const [id, c] of recentChangesRef.current) {
+        if (now - c.at > RECENT_CHANGE_MS) recentChangesRef.current.delete(id);
+      }
+      const changes = [...recentChangesRef.current.values()].map(({ id, done, today, by }) => ({ id, done, today, by }));
+      try {
+        await setTasksComplete(changes);
+        setUsingDemoData(false);
+      } catch (e) {
+        // Chỉ trả lại đúng công việc này, nếu sau đó chưa bị tick lại lần nữa
+        if (recentChangesRef.current.get(t.id) === change) {
+          recentChangesRef.current.delete(t.id);
+          setTasks((cur) => cur.map((x) => (x.id === t.id ? { ...x, ...prevState } : x)));
+        }
+        setSaveError(e.message || "Cập nhật trạng thái thất bại.");
+      }
+    });
   };
 
   const clearFilters = () => setFilters(emptyFilters);

@@ -28,11 +28,12 @@ export async function replaceTasks(tasks) {
   return res.json();
 }
 
-export async function toggleTaskComplete(id, todayIso, by) {
+// changes: [{ id, done: true|false, today, by }]
+export async function setTasksComplete(changes) {
   const res = await fetch("/api/tasks", {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
-    body: JSON.stringify({ id, today: todayIso, by }),
+    body: JSON.stringify({ changes }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
