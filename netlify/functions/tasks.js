@@ -28,14 +28,11 @@ export const handler = async (event, context) => {
   connectLambda(event);
   const store = getStore(STORE_NAME);
 
-  // Đọc danh sách công việc — công khai, ai cũng xem được (không cần đăng nhập).
   if (event.httpMethod === "GET") {
     const tasks = (await store.get(KEY, { type: "json" })) || [];
     return json(tasks);
   }
 
-  // Ghi đè toàn bộ danh sách — dùng khi Giám sát thêm/sửa/xóa công việc.
-  // Bắt buộc phải có role "giam_sat" trong Netlify Identity.
   if (event.httpMethod === "POST") {
     if (!isSupervisor(context)) {
       return json({ error: "Chỉ Giám sát mới có quyền thêm/sửa/xóa công việc." }, 403);
@@ -53,8 +50,6 @@ export const handler = async (event, context) => {
     return json(body.tasks);
   }
 
-  // Tick / bỏ tick hoàn thành — cho phép mọi người dùng (không cần role đặc biệt),
-  // vì đây là quyền chung của cả 3 nhóm CHỨC/TÙNG/TRƯỜNG.
   if (event.httpMethod === "PATCH") {
     let body;
     try {
@@ -62,16 +57,31 @@ export const handler = async (event, context) => {
     } catch {
       return json({ error: "Dữ liệu không hợp lệ." }, 400);
     }
-    if (!body?.id) return json({ error: "Thiếu id công việc." }, 400);
+    // Định dạng mới: { changes: [{ id, done, today, by }] } — đặt trạng thái RÕ RÀNG
+    // (hoàn thành / chưa hoàn thành) thay vì "đảo ngược", nên đọc phải dữ liệu cũ
+    // cũng không làm đảo sai. Client gửi kèm mọi thay đổi gần đây của mình, nên
+    // lần ghi sau không xóa mất lần ghi trước.
+    // Định dạng cũ: { id, today, by } — vẫn hỗ trợ (đảo trạng thái).
+    const changes = Array.isArray(body?.changes)
+      ? body.changes
+      : body?.id
+        ? [{ id: body.id, today: body.today, by: body.by }]
+        : null;
+    if (!changes || changes.length === 0 || changes.some((c) => !c?.id)) {
+      return json({ error: "Thiếu id công việc." }, 400);
+    }
+    const byId = new Map(changes.map((c) => [c.id, c]));
 
     const tasks = (await store.get(KEY, { type: "json" })) || [];
     const updated = tasks.map((t) => {
-      if (t.id !== body.id) return t;
-      const willComplete = !t.ngayHoanThanh;
+      const c = byId.get(t.id);
+      if (!c) return t;
+      const willComplete = typeof c.done === "boolean" ? c.done : !t.ngayHoanThanh;
+      if (willComplete && t.ngayHoanThanh) return t; // đã hoàn thành sẵn: giữ ngày/người cũ
       return {
         ...t,
-        ngayHoanThanh: willComplete ? body.today : "",
-        hoanThanhBoi: willComplete ? (body.by || "Không xác định") : "",
+        ngayHoanThanh: willComplete ? c.today : "",
+        hoanThanhBoi: willComplete ? (c.by || "Không xác định") : "",
       };
     });
     await store.setJSON(KEY, updated);
