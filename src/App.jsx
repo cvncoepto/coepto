@@ -41,6 +41,34 @@ function getStatus(task) {
   return "pending";
 }
 
+// Thanh thời hạn: phần còn lại của khoảng (ngày giao → hạn hoàn thành).
+// Đầy + xanh lá khi mới giao, ngắn dần và chuyển vàng → cam khi gần hạn, đỏ đầy khi quá hạn.
+function parseLocalDate(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+function getDeadlineBar(task) {
+  if (task.ngayHoanThanh) return { pct: 100, color: "#12805C", label: "Hoàn thành" };
+  const due = parseLocalDate(task.ngayHoanThanhDuKien);
+  if (!due) return { pct: 0, color: "#98A2B3", label: "Chưa có hạn" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const DAY = 86400000;
+  const daysLeft = Math.round((due - today) / DAY);
+  if (daysLeft < 0) return { pct: 100, color: "#C4302B", label: `Quá hạn ${-daysLeft} ngày` };
+  const start = parseLocalDate(task.ngayGiao);
+  const total = start ? Math.max(1, Math.round((due - start) / DAY)) : Math.max(1, daysLeft);
+  const frac = Math.min(1, daysLeft / total);
+  const hue = Math.round(25 + 115 * frac); // 140 = xanh lá, 25 = cam
+  return {
+    pct: Math.max(6, Math.round(frac * 100)),
+    color: `hsl(${hue}, 70%, 40%)`,
+    label: daysLeft === 0 ? "Đến hạn hôm nay" : `Còn ${daysLeft} ngày`,
+  };
+}
+
 const STATUS_META = {
   completed: { label: "Hoàn thành", color: "#12805C", bg: "#E7F6EF" },
   overdue: { label: "Quá hạn", color: "#C4302B", bg: "#FDECEC" },
@@ -432,10 +460,19 @@ export default function App() {
             </label>
           </td>
           <td>
-            <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
-              <span className="tpc-status-dot" style={{ background: meta.color }} />
-              {meta.label}
-            </span>
+            {(() => {
+              const bar = getDeadlineBar(t);
+              return (
+                <div className="tpc-deadline" title={meta.label}>
+                  {/* Dòng ẩn quyết định chiều dài thanh = chiều dài chữ "Đến hạn hôm nay" */}
+                  <span className="tpc-deadline-sizer" aria-hidden="true">Đến hạn hôm nay</span>
+                  <div className="tpc-deadline-track">
+                    <div className="tpc-deadline-fill" style={{ width: `${bar.pct}%`, background: bar.color }} />
+                  </div>
+                  <span className="tpc-deadline-label" style={{ color: bar.color }}>{bar.label}</span>
+                </div>
+              );
+            })()}
           </td>
           {isSupervisor && (
             <td>
@@ -729,6 +766,11 @@ export default function App() {
           padding: 4px 10px; border-radius: 999px;
         }
         .tpc-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .tpc-deadline { display: inline-block; vertical-align: middle; }
+        .tpc-deadline-sizer { display: block; height: 0; overflow: hidden; visibility: hidden; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .tpc-deadline-track { height: 8px; border-radius: 999px; background: #EAECF0; overflow: hidden; }
+        .tpc-deadline-fill { height: 100%; border-radius: 999px; transition: width .3s, background-color .3s; }
+        .tpc-deadline-label { display: block; width: 0; margin-top: 4px; font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: visible; }
         .tpc-done-cell { display: flex; align-items: center; gap: 8px; }
         .tpc-done-info { display: flex; flex-direction: column; line-height: 1.3; }
         .tpc-done-by { font-size: 10px; color: var(--muted); }
