@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { initIdentity, openLogin, logout, getRoles, getDisplayName } from "./identity";
-import { fetchTasks, replaceTasks, toggleTaskComplete } from "./api";
+import { fetchTasks, replaceTasks, setTasksComplete, listBackups, fetchBackup } from "./api";
 import { exportTasksToCsv } from "./exportCsv";
 import { importTasksFromCsv } from "./importCsv";
+import { IMPORT_MODES, computeImportPlan, groupSummary, describeChanges, normalizeConfirm } from "./importMerge";
 
 const GROUPS = [
   { key: "CHUC", label: "CHỨC" },
   { key: "TUNG", label: "TÙNG" },
   { key: "TRUONG", label: "TRƯỜNG" },
 ];
-const groupLabel = (k) => GROUPS.find((g) => g.key === k)?.label || k;
+// Nhóm riêng cho Giám sát — không hiện trên màn hình chọn tên, chỉ hiện trong tab
+// nhóm sau khi Giám sát đăng nhập (vì chỉ Giám sát mới thấy dashboard ở dạng "mở khóa").
+const SUPERVISOR_GROUP = { key: "GIAMSAT", label: "GIÁM SÁT" };
+const ALL_GROUPS = [...GROUPS, SUPERVISOR_GROUP];
+const groupLabel = (k) => ALL_GROUPS.find((g) => g.key === k)?.label || k;
 
 const SUPERVISOR_ROLE = "giam_sat";
 
@@ -26,6 +31,12 @@ function formatDate(iso) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())} ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
 function getStatus(task) {
   if (task.ngayHoanThanh) return "completed";
   const today = new Date();
@@ -37,6 +48,34 @@ function getStatus(task) {
   return "pending";
 }
 
+// Thanh thời hạn: phần còn lại của khoảng (ngày giao → hạn hoàn thành).
+// Đầy + xanh lá khi mới giao, ngắn dần và chuyển vàng → cam khi gần hạn, đỏ đầy khi quá hạn.
+function parseLocalDate(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+function getDeadlineBar(task) {
+  if (task.ngayHoanThanh) return { pct: 100, color: "#12805C", label: "Hoàn thành" };
+  const due = parseLocalDate(task.ngayHoanThanhDuKien);
+  if (!due) return { pct: 0, color: "#98A2B3", label: "Chưa có hạn" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const DAY = 86400000;
+  const daysLeft = Math.round((due - today) / DAY);
+  if (daysLeft < 0) return { pct: 100, color: "#C4302B", label: `Quá hạn ${-daysLeft} ngày` };
+  const start = parseLocalDate(task.ngayGiao);
+  const total = start ? Math.max(1, Math.round((due - start) / DAY)) : Math.max(1, daysLeft);
+  const frac = Math.min(1, daysLeft / total);
+  const hue = Math.round(25 + 115 * frac); // 140 = xanh lá, 25 = cam
+  return {
+    pct: Math.max(6, Math.round(frac * 100)),
+    color: `hsl(${hue}, 70%, 40%)`,
+    label: daysLeft === 0 ? "Đến hạn hôm nay" : `Còn ${daysLeft} ngày`,
+  };
+}
+
 const STATUS_META = {
   completed: { label: "Hoàn thành", color: "#12805C", bg: "#E7F6EF" },
   overdue: { label: "Quá hạn", color: "#C4302B", bg: "#FDECEC" },
@@ -46,18 +85,29 @@ const STATUS_META = {
 const genId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const SEED_TASKS = [
-  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
-  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
-  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
-  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
+  { id: genId(), group: "CHUC", task: "Soạn báo cáo tuần", moTa: "Tổng hợp số liệu bán hàng và tiến độ công việc trong tuần, gửi cho Giám sát trước 17h thứ Sáu.", ngayGiao: isoOffset(-6), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Liên hệ khách hàng A", moTa: "Gọi điện xác nhận lại đơn hàng và thời gian giao dự kiến với khách hàng A.", ngayGiao: isoOffset(-3), ngayHoanThanhDuKien: isoOffset(2), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "CHUC", task: "Cập nhật hồ sơ nhân sự", moTa: "", ngayGiao: isoOffset(-12), ngayHoanThanhDuKien: isoOffset(-8), ngayHoanThanh: isoOffset(-8), hoanThanhBoi: "CHỨC" },
+  { id: genId(), group: "TUNG", task: "Kiểm kê kho tháng 8", moTa: "Đối chiếu số lượng thực tế trong kho với sổ sách, báo cáo chênh lệch (nếu có).", ngayGiao: isoOffset(-8), ngayHoanThanhDuKien: isoOffset(-1), ngayHoanThanh: isoOffset(-1), hoanThanhBoi: "TÙNG" },
+  { id: genId(), group: "TUNG", task: "Sửa lỗi hệ thống đặt hàng", moTa: "Hệ thống bị treo khi khách bấm xác nhận đơn — cần phối hợp với bên IT kiểm tra log lỗi.", ngayGiao: isoOffset(-2), ngayHoanThanhDuKien: isoOffset(1), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TUNG", task: "Đào tạo nhân viên mới", moTa: "", ngayGiao: isoOffset(-15), ngayHoanThanhDuKien: isoOffset(-9), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Lập kế hoạch marketing", moTa: "Xây dựng kế hoạch quảng bá cho chương trình khuyến mãi tháng tới, trình duyệt trước ngày 10.", ngayGiao: isoOffset(-5), ngayHoanThanhDuKien: isoOffset(4), ngayHoanThanh: "", hoanThanhBoi: "" },
+  { id: genId(), group: "TRUONG", task: "Thiết kế banner sự kiện", moTa: "", ngayGiao: isoOffset(-7), ngayHoanThanhDuKien: isoOffset(-2), ngayHoanThanh: isoOffset(-2), hoanThanhBoi: "TRƯỜNG" },
 ];
 
-const emptyForm = { group: "", task: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
-const emptyFilters = { ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+const emptyForm = { group: "", task: "", moTa: "", ngayGiao: "", ngayHoanThanhDuKien: "", ngayHoanThanh: "" };
+const emptyFilters = { tenCongViec: "", ngayGiao: "", ngayHtdk: "", ngayHt: "" };
+
+// Bỏ dấu tiếng Việt, chữ thường để tìm kiếm không phân biệt dấu/hoa thường
+function normalizeText(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .trim();
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -120,8 +170,20 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [sortField, setSortField] = useState("ngayGiao"); // "ngayGiao" | "task" | "ngayHoanThanhDuKien"
-  const [sortDir, setSortDir] = useState("desc"); // "asc" | "desc"
+  const [sortDir, setSortDir] = useState("desc");
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [importInfo, setImportInfo] = useState("");
+  const csvFileInputRef = useRef(null);
+  // Màn hình nhập: null | { step: "start" | "backups" | "preview", ... }
+  const [importState, setImportState] = useState(null);
+  // Bản chụp danh sách ngay trước lần nhập gần nhất, để Hoàn tác
+  const [undoSnap, setUndoSnap] = useState(null);
+
+  const isLockedViewer = !isSupervisor && !!viewerName;
+  useEffect(() => {
+    if (isLockedViewer) setActiveGroup(viewerName);
+  }, [isLockedViewer, viewerName]);
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -132,10 +194,14 @@ export default function App() {
     }
   };
 
-  const isLockedViewer = !isSupervisor && !!viewerName;
-  useEffect(() => {
-    if (isLockedViewer) setActiveGroup(viewerName);
-  }, [isLockedViewer, viewerName]);
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +238,7 @@ export default function App() {
       } else if (activeStatus !== "ALL" && getStatus(t) !== activeStatus) {
         return false;
       }
+      if (filters.tenCongViec.trim() && !normalizeText(t.task).includes(normalizeText(filters.tenCongViec))) return false;
       if (filters.ngayGiao && t.ngayGiao !== filters.ngayGiao) return false;
       if (filters.ngayHtdk && t.ngayHoanThanhDuKien !== filters.ngayHtdk) return false;
       if (filters.ngayHt && t.ngayHoanThanh !== filters.ngayHt) return false;
@@ -191,7 +258,6 @@ export default function App() {
     return sortDir === "asc" ? cmp : -cmp;
   };
 
-  // Công việc CHƯA hoàn thành: quá hạn luôn lên đầu, trong từng nhóm sắp xếp theo sortField/sortDir.
   const incompleteTasks = useMemo(() => {
     return baseFiltered
       .filter((t) => getStatus(t) !== "completed")
@@ -203,7 +269,6 @@ export default function App() {
       });
   }, [baseFiltered, sortField, sortDir]);
 
-  // Công việc ĐÃ hoàn thành: thu gọn riêng, mở ra khi cần.
   const completedTasks = useMemo(() => {
     return baseFiltered
       .filter((t) => getStatus(t) === "completed")
@@ -219,12 +284,21 @@ export default function App() {
 
   const openAddForm = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    // Đang xem nhóm nào thì chọn sẵn nhóm đó (vẫn đổi được trong form)
+    const defaultGroup = ALL_GROUPS.some((g) => g.key === activeGroup) ? activeGroup : "";
+    setForm({ ...emptyForm, group: defaultGroup });
     setShowForm(true);
   };
   const openEditForm = (t) => {
     setEditingId(t.id);
-    setForm({ group: t.group, task: t.task, ngayGiao: t.ngayGiao, ngayHoanThanhDuKien: t.ngayHoanThanhDuKien, ngayHoanThanh: t.ngayHoanThanh });
+    setForm({
+      group: t.group,
+      task: t.task,
+      moTa: t.moTa || "",
+      ngayGiao: t.ngayGiao,
+      ngayHoanThanhDuKien: t.ngayHoanThanhDuKien,
+      ngayHoanThanh: t.ngayHoanThanh,
+    });
     setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
@@ -233,7 +307,7 @@ export default function App() {
     if (!form.group || !form.task.trim() || !form.ngayGiao || !form.ngayHoanThanhDuKien) return;
     const nextTasks = editingId
       ? tasks.map((t) => (t.id === editingId ? { ...t, ...form } : t))
-      : [...tasks, { id: genId(), ...form }];
+      : [...tasks, { id: genId(), hoanThanhBoi: "", ...form }];
 
     setSaving(true);
     setSaveError("");
@@ -264,72 +338,194 @@ export default function App() {
     }
   };
 
-  const csvFileInputRef = useRef(null);
-  const [importInfo, setImportInfo] = useState("");
+  // ===== Nhập dữ liệu =====
+  const exportAll = (list, filePrefix) =>
+    exportTasksToCsv(list, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate, {
+      groupOrder: ALL_GROUPS.map((g) => g.key),
+      ...(filePrefix ? { filePrefix } : {}),
+    });
+
+  // Luôn lấy danh sách mới nhất từ máy chủ làm gốc để so sánh (người khác có thể vừa sửa)
+  const loadFreshBase = async () => {
+    try {
+      const fresh = await fetchTasks();
+      if (Array.isArray(fresh)) return fresh;
+    } catch {
+      /* dùng dữ liệu đang hiển thị */
+    }
+    return tasks;
+  };
 
   const handleImportCsvClick = () => {
     setSaveError("");
     setImportInfo("");
-    csvFileInputRef.current?.click();
+    setImportState({ step: "start" });
   };
+
+  const pickCsvFile = () => csvFileInputRef.current?.click();
 
   const handleImportCsvFile = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // cho phép chọn lại cùng file lần sau
+    e.target.value = "";
     if (!file) return;
 
     const text = await file.text();
-    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: GROUPS, genId });
-
+    const { tasks: importedTasks, errors, hasIdColumn } = importTasksFromCsv(text, { groups: ALL_GROUPS, genId });
     if (importedTasks.length === 0) {
-      setSaveError(errors[0] || "Không đọc được công việc nào hợp lệ từ file này.");
+      setImportState({ step: "start", error: errors[0] || "Không đọc được công việc nào hợp lệ từ file này." });
       return;
     }
+    setImportState({ step: "preview", loadingBase: true });
+    const base = await loadFreshBase();
+    setImportState({
+      step: "preview",
+      source: "file",
+      sourceLabel: file.name,
+      imported: importedTasks,
+      errors,
+      hasIdColumn,
+      base,
+      mode: "smart",
+      confirmText: "",
+      backupLocal: true,
+    });
+  };
 
-    const confirmMsg =
-      `Tìm thấy ${importedTasks.length} công việc trong file.\n` +
-      `Việc nhập sẽ THAY THẾ toàn bộ danh sách hiện tại (${tasks.length} công việc) bằng dữ liệu từ file.\n\n` +
-      `Bạn có chắc chắn muốn tiếp tục?`;
-    if (!window.confirm(confirmMsg)) return;
+  const openBackups = async () => {
+    setImportState({ step: "backups", loading: true });
+    try {
+      const list = await listBackups();
+      setImportState({ step: "backups", list });
+    } catch (err) {
+      setImportState({ step: "backups", list: [], error: err.message });
+    }
+  };
 
+  const pickBackup = async (b) => {
+    setImportState({ step: "backups", loading: true });
+    try {
+      const [data, base] = await Promise.all([fetchBackup(b.key), loadFreshBase()]);
+      setImportState({
+        step: "preview",
+        source: "backup",
+        sourceLabel: `Bản sao lưu lúc ${formatDateTime(b.at)}`,
+        imported: data.map((t) => ({ ...t, fromFileId: true })),
+        errors: [],
+        hasIdColumn: true,
+        base,
+        mode: "replace",
+        confirmText: "",
+        backupLocal: true,
+      });
+    } catch (err) {
+      setImportState({ step: "backups", list: [], error: err.message });
+    }
+  };
+
+  const importPlan = useMemo(() => {
+    if (importState?.step !== "preview" || !importState.imported) return null;
+    const plan = computeImportPlan(importState.base, importState.imported, importState.mode);
+    const summary = groupSummary(importState.base, importState.imported, plan.result, ALL_GROUPS);
+    return { ...plan, ...summary };
+  }, [importState]);
+
+  const needsTypedConfirm = Boolean(importPlan && importPlan.removed.length > 0);
+  const typedOk = !needsTypedConfirm || normalizeConfirm(importState?.confirmText) === "THAY THE";
+  const nothingToChange = Boolean(importPlan) && importPlan.added.length + importPlan.updated.length + importPlan.removed.length === 0;
+
+  const applyImport = async () => {
+    if (!importPlan || !typedOk || nothingToChange) return;
+    const st = importState;
     setSaving(true);
     setSaveError("");
     try {
-      const saved = await replaceTasks(importedTasks);
+      let backupNote = "";
+      if (st.backupLocal && st.base.length > 0) {
+        const { fileName } = exportAll(st.base, "sao-luu-truoc-khi-nhap");
+        backupNote = ` Đã tải bản sao lưu về máy: ${fileName}.`;
+      }
+      const saved = await replaceTasks(importPlan.result, st.source === "backup" ? "restore" : "import");
       setTasks(saved);
       setUsingDemoData(false);
-      if (errors.length > 0) {
-        setImportInfo(`Đã nhập ${importedTasks.length} công việc. Bỏ qua ${errors.length} dòng lỗi: ${errors.slice(0, 3).join(" ")}${errors.length > 3 ? "…" : ""}`);
-      } else {
-        setImportInfo(`Đã nhập thành công ${importedTasks.length} công việc từ file.`);
-      }
+      setUndoSnap({ tasks: st.base, at: Date.now() });
+      const parts = [];
+      if (importPlan.added.length) parts.push(`thêm ${importPlan.added.length}`);
+      if (importPlan.updated.length) parts.push(`cập nhật ${importPlan.updated.length}`);
+      if (importPlan.removed.length) parts.push(`xóa ${importPlan.removed.length}`);
+      const what = st.source === "backup" ? "Đã khôi phục bản sao lưu" : `Đã nhập file (${IMPORT_MODES[st.mode].label})`;
+      setImportInfo(`${what}: ${parts.join(", ")} công việc.${backupNote}${st.errors.length ? ` Bỏ qua ${st.errors.length} dòng lỗi.` : ""}`);
+      setImportState(null);
     } catch (err) {
-      setSaveError(err.message || "Nhập dữ liệu thất bại.");
+      setImportState((cur) => (cur ? { ...cur, applyError: err.message || "Nhập dữ liệu thất bại." } : cur));
     } finally {
       setSaving(false);
     }
   };
 
-
-  const toggleComplete = async (t) => {
-    const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
-    const willComplete = !t.ngayHoanThanh;
-    const optimistic = tasks.map((x) =>
-      x.id === t.id ? { ...x, ngayHoanThanh: willComplete ? todayIso() : "", hoanThanhBoi: willComplete ? byName : "" } : x
-    );
-    setTasks(optimistic);
+  const undoImport = async () => {
+    if (!undoSnap) return;
+    if (!window.confirm("Đưa danh sách về đúng như trước lần nhập vừa rồi?\nCác thay đổi làm sau lần nhập (nếu có) cũng sẽ bị bỏ.")) return;
+    setSaving(true);
+    setSaveError("");
     try {
-      const saved = await toggleTaskComplete(t.id, todayIso(), byName);
+      const saved = await replaceTasks(undoSnap.tasks, "restore");
       setTasks(saved);
-      setUsingDemoData(false);
-    } catch (e) {
-      setTasks(tasks);
-      setSaveError(e.message || "Cập nhật trạng thái thất bại.");
+      setUndoSnap(null);
+      setImportInfo("Đã hoàn tác lần nhập. Danh sách đã trở lại như trước khi nhập.");
+    } catch (err) {
+      setSaveError(err.message || "Hoàn tác thất bại.");
+    } finally {
+      setSaving(false);
     }
   };
 
+  // Tick hoàn thành:
+  // - Cập nhật ngay trên màn hình, chỉ đụng tới đúng công việc được tick.
+  // - Các lần tick được gửi lần lượt (không chồng nhau), mỗi lần gửi kèm mọi thay đổi
+  //   trong ~2 phút gần đây. Lưu trữ Netlify có thể đọc ra dữ liệu cũ tới ~60 giây,
+  //   gửi kèm như vậy giúp lần ghi sau không xóa mất lần tick trước.
+  // - Không thay cả danh sách bằng dữ liệu server trả về (có thể là bản cũ).
+  const recentChangesRef = useRef(new Map());
+  const toggleQueueRef = useRef(Promise.resolve());
+  const RECENT_CHANGE_MS = 2 * 60 * 1000;
+
+  const toggleComplete = (t) => {
+    const byName = isSupervisor ? "Giám sát" : groupLabel(viewerName);
+    const done = !t.ngayHoanThanh;
+    const today = todayIso();
+    const prevState = { ngayHoanThanh: t.ngayHoanThanh || "", hoanThanhBoi: t.hoanThanhBoi || "" };
+
+    setTasks((cur) =>
+      cur.map((x) =>
+        x.id === t.id ? { ...x, ngayHoanThanh: done ? today : "", hoanThanhBoi: done ? byName : "" } : x
+      )
+    );
+    const change = { id: t.id, done, today, by: byName, at: Date.now() };
+    recentChangesRef.current.set(t.id, change);
+
+    toggleQueueRef.current = toggleQueueRef.current.then(async () => {
+      const now = Date.now();
+      for (const [id, c] of recentChangesRef.current) {
+        if (now - c.at > RECENT_CHANGE_MS) recentChangesRef.current.delete(id);
+      }
+      const changes = [...recentChangesRef.current.values()].map(({ id, done, today, by }) => ({ id, done, today, by }));
+      try {
+        await setTasksComplete(changes);
+        setUsingDemoData(false);
+      } catch (e) {
+        // Chỉ trả lại đúng công việc này, nếu sau đó chưa bị tick lại lần nữa
+        if (recentChangesRef.current.get(t.id) === change) {
+          recentChangesRef.current.delete(t.id);
+          setTasks((cur) => cur.map((x) => (x.id === t.id ? { ...x, ...prevState } : x)));
+        }
+        setSaveError(e.message || "Cập nhật trạng thái thất bại.");
+      }
+    });
+  };
+
   const clearFilters = () => setFilters(emptyFilters);
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const activeFilterCount = Object.values(filters).filter((v) => String(v).trim()).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const workload = (groupKey) => {
     const gt = tasks.filter((t) => t.group === groupKey);
@@ -342,36 +538,70 @@ export default function App() {
   const renderTaskRow = (t) => {
     const st = getStatus(t);
     const meta = STATUS_META[st];
+    // Chỉ công việc có mô tả mới có mũi tên và mở ra được
+    const hasDesc = Boolean(t.moTa && t.moTa.trim());
+    const isExpanded = hasDesc && expandedIds.has(t.id);
     return (
-      <tr key={t.id}>
-        <td className="tpc-task-name tpc-col-task">{t.task}</td>
-        <td><span className="tpc-group-pill">{groupLabel(t.group)}</span></td>
-        <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
-        <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
-        <td>
-          <label className="tpc-done-cell">
-            <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
-            <span className="tpc-done-info">
-              <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
-              {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+      <React.Fragment key={t.id}>
+        <tr className={isExpanded ? "tpc-row-expanded" : ""}>
+          <td
+            className={`tpc-task-name tpc-col-task${hasDesc ? " has-desc" : ""}`}
+            onClick={hasDesc ? () => toggleExpand(t.id) : undefined}
+            title={hasDesc ? (isExpanded ? "Ẩn mô tả" : "Xem mô tả") : undefined}
+          >
+            <span className="tpc-task-name-inner">
+              {hasDesc
+                ? <span className="tpc-desc-caret">{isExpanded ? "▾" : "▸"}</span>
+                : <span className="tpc-desc-caret tpc-desc-dot">•</span>}
+              {t.task}
             </span>
-          </label>
-        </td>
-        <td>
-          <span className="tpc-status-pill" style={{ background: meta.bg, color: meta.color }}>
-            <span className="tpc-status-dot" style={{ background: meta.color }} />
-            {meta.label}
-          </span>
-        </td>
-        {isSupervisor && (
-          <td>
-            <div className="tpc-actions">
-              <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
-              <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
-            </div>
           </td>
+          <td><span className={`tpc-group-pill tpc-group-pill-${t.group}`}>{groupLabel(t.group)}</span></td>
+          <td className="tpc-num">{formatDate(t.ngayGiao)}</td>
+          <td className="tpc-num">{formatDate(t.ngayHoanThanhDuKien)}</td>
+          <td>
+            <label className="tpc-done-cell">
+              <input type="checkbox" className="tpc-checkbox" checked={!!t.ngayHoanThanh} onChange={() => toggleComplete(t)} />
+              <span className="tpc-done-info">
+                <span className="tpc-num">{formatDate(t.ngayHoanThanh)}</span>
+                {t.hoanThanhBoi && <span className="tpc-done-by">bởi {t.hoanThanhBoi}</span>}
+              </span>
+            </label>
+          </td>
+          <td>
+            {(() => {
+              const bar = getDeadlineBar(t);
+              return (
+                <div className="tpc-deadline" title={meta.label}>
+                  {/* Dòng ẩn quyết định chiều dài thanh = chiều dài chữ "Đến hạn hôm nay" */}
+                  <span className="tpc-deadline-sizer" aria-hidden="true">Đến hạn hôm nay</span>
+                  <div className="tpc-deadline-track">
+                    <div className="tpc-deadline-fill" style={{ width: `${bar.pct}%`, background: bar.color }} />
+                  </div>
+                  <span className="tpc-deadline-label" style={{ color: bar.color }}>{bar.label}</span>
+                </div>
+              );
+            })()}
+          </td>
+          {isSupervisor && (
+            <td>
+              <div className="tpc-actions">
+                <button className="tpc-icon-btn" title="Sửa" onClick={() => openEditForm(t)} disabled={saving}>✎</button>
+                <button className="tpc-icon-btn danger" title="Xóa" onClick={() => deleteTask(t.id)} disabled={saving}>🗑</button>
+              </div>
+            </td>
+          )}
+        </tr>
+        {isExpanded && (
+          <tr className="tpc-desc-row">
+            <td colSpan={isSupervisor ? 7 : 6}>
+              <div className="tpc-desc-content">
+                {t.moTa}
+              </div>
+            </td>
+          </tr>
         )}
-      </tr>
+      </React.Fragment>
     );
   };
 
@@ -389,18 +619,20 @@ export default function App() {
           --navy: #16223F;
           --navy-2: #1F2F55;
           --blue: #2E5AAC;
-          --ink: #101828;
-          --muted: #667085;
-          --border: #E4E7EC;
+          --ink: #13181F;
+          --muted: #5B6472;
+          --border: #E3E5EA;
           --bg: #F3F5F9;
+          --canvas: #EDF0F5;
           --surface: #FFFFFF;
-          --green: #12805C;
+          --green: #157A56;
           --green-bg: #E7F6EF;
-          --red: #C4302B;
+          --red: #C13A2E;
           --red-bg: #FDECEC;
           --amber: #946200;
           --amber-bg: #FBF0DD;
-          --gold: #D8B65A;
+          --gold: #C99A3E;
+          --gold-ink: #8A6A22;
           --gold-bg: #FAF1DC;
           font-family: 'Inter', -apple-system, sans-serif;
           background: var(--bg);
@@ -432,6 +664,7 @@ export default function App() {
           color: #fff; font-size: 12px; font-weight: 600;
         }
         .tpc-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; }
+        .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tpc-btn-login {
           background: #fff; color: var(--navy); border: none; border-radius: 8px;
           padding: 9px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
@@ -450,72 +683,106 @@ export default function App() {
           overflow: hidden;
         }
 
-        .tpc-banner {
-          padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px;
-        }
+        .tpc-banner { padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 14px; }
         .tpc-banner-info { background: var(--gold-bg); color: #7A5B12; }
         .tpc-banner-error { background: var(--red-bg); color: var(--red); font-weight: 600; }
 
-        .tpc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 11px; width: 100%; }
-        .tpc-stat-card {
-          width: 100%; min-width: 132px; min-height: 56px; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-          transition: transform .1s, box-shadow .15s; text-align: center; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; gap: 9px;
-          border-left: 3px solid transparent;
-        }
-        .tpc-stat-card:hover { transform: translateY(-1px); }
-        .tpc-stat-card.active { box-shadow: 0 0 0 3px rgba(16,24,40,0.18); }
-        .tpc-stat-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.9; }
-        .tpc-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; line-height: 1; }
-        .tpc-stat-total { background: var(--gold); border-left: none; }
-        .tpc-stat-total .tpc-stat-label, .tpc-stat-total .tpc-stat-value { color: #4A3A0E; }
-        .tpc-stat-completed { background: var(--green); border-left: none; }
-        .tpc-stat-completed .tpc-stat-label, .tpc-stat-completed .tpc-stat-value { color: #fff; }
-        .tpc-stat-overdue { background: var(--red); border-left: none; }
-        .tpc-stat-overdue .tpc-stat-label, .tpc-stat-overdue .tpc-stat-value { color: #fff; }
-
-        .tpc-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-        .tpc-locked-group-label {
-          font-size: 13px; color: var(--muted); margin-bottom: 16px; padding: 10px 14px;
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-        }
-        .tpc-locked-group-label strong { color: var(--ink); }
-
-        .tpc-landing { text-align: center; padding: 40px 16px 24px; overflow-y: auto; }
-        .tpc-landing-sub { font-size: 13px; color: var(--muted); margin: 0 0 24px; }
+        .tpc-landing { text-align: center; padding: 56px 16px 24px; overflow-y: auto; }
+        .tpc-landing-sub { font-size: 14px; color: var(--muted); margin: 0 0 28px; }
         .tpc-landing-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .tpc-landing-card {
-          min-width: 140px; padding: 28px 24px; border: 1.5px solid var(--border); border-radius: 14px;
-          background: var(--surface); font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700;
-          color: var(--navy); cursor: pointer; transition: transform .12s, border-color .12s, box-shadow .12s;
+          min-width: 176px; padding: 24px 26px; background: var(--surface);
+          border: 1px solid var(--border); border-radius: 12px;
+          cursor: pointer; text-align: left; transition: transform .12s, box-shadow .15s;
         }
         .tpc-landing-card:hover { transform: translateY(-2px); }
-        .tpc-landing-card-CHUC { background: #2E5AAC; border-color: #2E5AAC; color: #fff; }
-        .tpc-landing-card-CHUC:hover { background: #1F3F7A; border-color: #1F3F7A; box-shadow: 0 8px 20px rgba(46,90,172,0.35); }
-        .tpc-landing-card-TUNG { background: #C2410C; border-color: #C2410C; color: #fff; }
-        .tpc-landing-card-TUNG:hover { background: #9A3410; border-color: #9A3410; box-shadow: 0 8px 20px rgba(194,65,12,0.35); }
-        .tpc-landing-card-TRUONG { background: #0E7490; border-color: #0E7490; color: #fff; }
-        .tpc-landing-card-TRUONG:hover { background: #0A5A70; border-color: #0A5A70; box-shadow: 0 8px 20px rgba(14,116,144,0.35); }
-        .tpc-tab {
-          flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-          padding: 10px 14px; cursor: pointer; min-width: 132px; min-height: 56px; text-align: left;
+        .tpc-landing-card:active { transform: translateY(0); }
+        .tpc-landing-card-header { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; }
+        .tpc-landing-card-body { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+        /* Nền màu nhóm trong suốt (đồng bộ thẻ nhóm bên trong), viền 1px đậm hơn nền một chút, đổ bóng cùng tông */
+        .tpc-landing-card-CHUC {
+          background: rgba(46,90,172,0.10); border-color: rgba(46,90,172,0.35);
+          box-shadow: 0 6px 16px rgba(46,90,172,0.22), 0 2px 4px rgba(16,24,40,0.08);
         }
-        .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-        .tpc-tab-name { font-size: 12px; font-weight: 700; color: var(--ink); }
-        .tpc-tab-count { font-size: 11px; color: var(--muted); margin-top: 1px; }
-        .tpc-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; margin-top: 8px; background: #EEF0F3; }
-        .tpc-bar span { height: 100%; }
+        .tpc-landing-card-CHUC .tpc-landing-card-header { color: #2E5AAC; }
+        .tpc-landing-card-CHUC:hover { background: rgba(46,90,172,0.12); box-shadow: 0 10px 24px rgba(46,90,172,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TUNG {
+          background: rgba(194,65,12,0.10); border-color: rgba(194,65,12,0.35);
+          box-shadow: 0 6px 16px rgba(194,65,12,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
+        .tpc-landing-card-TUNG .tpc-landing-card-header { color: #C2410C; }
+        .tpc-landing-card-TUNG:hover { background: rgba(194,65,12,0.12); box-shadow: 0 10px 24px rgba(194,65,12,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+        .tpc-landing-card-TRUONG {
+          background: rgba(14,116,144,0.10); border-color: rgba(14,116,144,0.35);
+          box-shadow: 0 6px 16px rgba(14,116,144,0.22), 0 2px 4px rgba(16,24,40,0.08);
+        }
+        .tpc-landing-card-TRUONG .tpc-landing-card-header { color: #0E7490; }
+        .tpc-landing-card-TRUONG:hover { background: rgba(14,116,144,0.12); box-shadow: 0 10px 24px rgba(14,116,144,0.3), 0 3px 6px rgba(16,24,40,0.1); }
+
+        .tpc-summary-card {
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+          margin-bottom: 5px; flex-shrink: 0; padding: 5px;
+        }
+        .tpc-stats {
+          display: flex; gap: 10px; margin-bottom: 5px;
+        }
+        .tpc-stat-card {
+          flex: 1; min-width: 0; display: flex; flex-direction: column;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+          padding: 12px 16px 14px; cursor: pointer; text-align: left;
+          transition: box-shadow .15s, transform .12s;
+        }
+        .tpc-stat-card:hover { box-shadow: 0 3px 10px rgba(16,24,40,0.08); }
+        .tpc-stat-card.active { box-shadow: 0 3px 12px rgba(16,24,40,0.12); transform: translateY(-1px); }
+        .tpc-stat-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+        .tpc-stat-value { font-size: 22px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
+        .tpc-stat-total .tpc-stat-value { color: var(--gold-ink); }
+        .tpc-stat-completed .tpc-stat-value { color: var(--green); }
+        .tpc-stat-overdue .tpc-stat-value { color: var(--red); }
+
+        .tpc-tabs {
+          display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .tpc-locked-group-label {
+          font-size: 13px; color: var(--muted);
+        }
+        .tpc-locked-group-label strong { color: var(--ink); }
+        .tpc-tab {
+          border: none; background: var(--canvas); cursor: pointer; white-space: nowrap;
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 16px; border-radius: 8px;
+          font-size: 14px; font-weight: 600; color: var(--muted);
+          transition: background-color .15s, color .15s, box-shadow .15s;
+        }
+        .tpc-tab:hover { background: #E4E7EC; color: var(--ink); }
+        .tpc-tab-count {
+          font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+          background: rgba(16,24,40,0.08); color: var(--muted);
+        }
+        .tpc-tab-ALL.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(22,34,63,0.35); }
+        .tpc-tab-ALL.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-CHUC.active { background: #2E5AAC; color: #fff; box-shadow: 0 2px 8px rgba(46,90,172,0.35); }
+        .tpc-tab-CHUC.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TUNG.active { background: #C2410C; color: #fff; box-shadow: 0 2px 8px rgba(194,65,12,0.35); }
+        .tpc-tab-TUNG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-TRUONG.active { background: #0E7490; color: #fff; box-shadow: 0 2px 8px rgba(14,116,144,0.35); }
+        .tpc-tab-TRUONG.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
+        .tpc-tab-GIAMSAT.active { background: #5B21B6; color: #fff; box-shadow: 0 2px 8px rgba(91,33,182,0.35); }
+        .tpc-tab-GIAMSAT.active .tpc-tab-count { background: rgba(255,255,255,0.2); color: #fff; }
 
         .tpc-toolbar {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
-          padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          padding: 14px 16px; margin-bottom: 5px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+          flex-shrink: 0; box-shadow: 0 1px 2px rgba(16,24,40,0.03);
         }
         .tpc-btn-filter-toggle {
           display: inline-flex; align-items: center; gap: 6px; background: #fff;
-          border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
-          font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+          border: 1px solid var(--border); border-radius: 8px; padding: 9px 13px;
+          font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer;
         }
-        .tpc-btn-filter-toggle:hover { background: #F5F6F8; }
+        .tpc-btn-filter-toggle:hover { background: var(--canvas); }
         .tpc-filter-badge {
           background: var(--blue); color: #fff; font-size: 10px; font-weight: 700;
           min-width: 16px; height: 16px; border-radius: 999px; display: inline-flex;
@@ -524,9 +791,9 @@ export default function App() {
         .tpc-filter-caret { font-size: 9px; color: var(--muted); margin-left: 2px; }
 
         .tpc-filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .tpc-filter-group label { font-size: 11px; color: var(--muted); font-weight: 600; }
+        .tpc-filter-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
         .tpc-input, .tpc-select {
-          border: 1.5px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12px;
+          border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; font-size: 12.5px;
           color: var(--ink); background: #fff; font-family: inherit;
         }
         .tpc-input:focus, .tpc-select:focus { outline: none; border-color: var(--blue); }
@@ -536,31 +803,44 @@ export default function App() {
         }
         .tpc-spacer { flex: 1; }
         .tpc-btn-secondary {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
-          padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
+          padding: 9px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
         }
-        .tpc-btn-secondary:hover { background: #F5F6F8; }
+        .tpc-btn-secondary:hover { background: var(--canvas); }
         .tpc-btn-add {
-          background: var(--navy); color: #fff; border: none; border-radius: 8px;
-          padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+          background: #1F5C7A; color: #fff; border: none; border-radius: 8px;
+          padding: 10px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+          box-shadow: 0 3px 8px rgba(31,92,122,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+          transition: background-color .15s, box-shadow .15s;
         }
-        .tpc-btn-add:hover { background: var(--navy-2); }
+        .tpc-btn-add:hover { background: #184B64; }
+        .tpc-btn-add:active { box-shadow: 0 1px 3px rgba(31,92,122,0.35); }
 
         .tpc-table-wrap {
-          background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
-          flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+          flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+          box-shadow: 0 1px 2px rgba(16,24,40,0.04);
         }
-        .tpc-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
-        .tpc-table-wrap::-webkit-scrollbar-track { background: #F3F5F9; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
-        .tpc-table-wrap::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
+        .tpc-table-header {
+          flex-shrink: 0; background: var(--navy); color: #fff; font-size: 13px; font-weight: 700;
+          padding: 11px 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .tpc-table-header-count {
+          background: rgba(255,255,255,0.18); font-size: 11.5px; font-weight: 700; padding: 1px 8px;
+          border-radius: 999px;
+        }
+        .tpc-table-scroll { flex: 1 1 auto; min-height: 0; overflow: scroll; -webkit-overflow-scrolling: touch; }
+        .tpc-table-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+        .tpc-table-scroll::-webkit-scrollbar-track { background: #F3F5F9; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb { background: #C7CCD6; border-radius: 6px; }
+        .tpc-table-scroll::-webkit-scrollbar-thumb:hover { background: #A9AFBC; }
         table.tpc-table { width: 100%; border-collapse: collapse; }
         .tpc-table col.tpc-col-task { width: 100%; }
         .tpc-table th, .tpc-table td { white-space: nowrap; }
         .tpc-table th.tpc-col-task, .tpc-table td.tpc-col-task { white-space: normal; }
         .tpc-table thead th {
-          text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
-          color: var(--muted); font-weight: 700; padding: 10px 12px; border-bottom: 1.5px solid var(--border);
+          text-align: left; font-size: 12.5px;
+          color: var(--muted); font-weight: 600; padding: 6px 12px; border-bottom: 1px solid var(--border);
           background: #FAFBFC; position: sticky; top: 0; z-index: 2;
         }
         .tpc-th-sortable { cursor: pointer; user-select: none; }
@@ -568,28 +848,45 @@ export default function App() {
         .tpc-sort-arrow { color: var(--blue); }
         .tpc-completed-toggle-row { cursor: pointer; background: #FAFBFC; }
         .tpc-completed-toggle-row:hover { background: #F0F2F5; }
-        .tpc-completed-toggle-row td { padding: 10px 12px; }
-        .tpc-completed-toggle { font-size: 12px; font-weight: 700; color: var(--muted); }
-        .tpc-table tbody td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tpc-completed-toggle-row td { padding: 5px 12px; }
+        .tpc-completed-toggle { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+        .tpc-table tbody td { padding: 5px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .tpc-table tbody tr:last-child td { border-bottom: none; }
         .tpc-table tbody tr:hover { background: #FAFBFD; }
-        .tpc-task-name { font-weight: 600; color: var(--ink); }
+        .tpc-task-name { font-weight: 500; color: var(--ink); cursor: default; }
+        .tpc-task-name.has-desc { cursor: pointer; }
+        .tpc-task-name-inner { display: inline-flex; align-items: center; gap: 6px; }
+        .tpc-desc-caret { color: var(--blue); font-size: 14px; line-height: 1; width: 12px; text-align: center; flex-shrink: 0; }
+        .tpc-desc-dot { color: var(--muted); opacity: 0.5; font-size: 12px; }
+        /* Selector đủ mạnh để thắng ".tpc-table tbody td"; 35px = chữ tên công việc (30px) + 5px */
+        .tpc-table tbody tr.tpc-desc-row td { background: #FAFBFC; padding: 5px 16px 5px 35px; border-bottom: 1px solid var(--border); }
+        .tpc-desc-content { font-size: 12.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
+        .tpc-desc-empty { color: var(--muted); font-style: italic; }
         .tpc-group-pill {
-          display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+          display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
           background: #EEF1F8; color: var(--navy-2);
         }
+        .tpc-group-pill-CHUC { background: #E7EEFB; color: #2E5AAC; }
+        .tpc-group-pill-TUNG { background: #FBEAE0; color: #C2410C; }
+        .tpc-group-pill-TRUONG { background: #E1F1F5; color: #0E7490; }
+        .tpc-group-pill-GIAMSAT { background: #EFE7FA; color: #5B21B6; }
         .tpc-status-pill {
           display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
           padding: 4px 10px; border-radius: 999px;
         }
         .tpc-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .tpc-deadline { display: inline-block; vertical-align: middle; }
+        .tpc-deadline-sizer { display: block; height: 0; overflow: hidden; visibility: hidden; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .tpc-deadline-track { height: 8px; border-radius: 999px; background: #EAECF0; overflow: hidden; }
+        .tpc-deadline-fill { height: 100%; border-radius: 999px; transition: width .3s, background-color .3s; }
+        .tpc-deadline-label { display: block; width: 0; margin-top: 4px; font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: visible; }
         .tpc-done-cell { display: flex; align-items: center; gap: 8px; }
         .tpc-done-info { display: flex; flex-direction: column; line-height: 1.3; }
         .tpc-done-by { font-size: 10px; color: var(--muted); }
         .tpc-checkbox { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
         .tpc-actions { display: flex; gap: 6px; }
         .tpc-icon-btn {
-          border: 1.5px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
+          border: 1px solid var(--border); background: #fff; border-radius: 7px; width: 30px; height: 30px;
           display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px;
         }
         .tpc-icon-btn:hover { background: #F5F6F8; }
@@ -600,17 +897,74 @@ export default function App() {
           position: fixed; inset: 0; background: rgba(16,24,40,0.45); display: flex; align-items: center;
           justify-content: center; z-index: 50; padding: 20px;
         }
-        .tpc-modal {
-          background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        .tpc-modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
+        .tpc-modal-wide { max-width: 560px; }
+        .tpc-banner-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .tpc-banner-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tpc-btn-undo { background: #fff; border: 1px solid #D9C48F; color: #7A5B12; border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .tpc-banner-close { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; opacity: .6; padding: 2px 4px; }
+        .tpc-btn-danger { background: #C4302B; }
+        .tpc-btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+        .tpc-imp-choice, .tpc-imp-backup {
+          display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff;
+          border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+          font-family: inherit; color: var(--ink); box-shadow: 0 2px 6px rgba(16,24,40,0.08);
         }
+        .tpc-imp-choice:hover, .tpc-imp-backup:hover { border-color: var(--blue); }
+        .tpc-imp-choice strong, .tpc-imp-backup strong { display: block; font-size: 13.5px; }
+        .tpc-imp-choice small, .tpc-imp-backup small, .tpc-imp-mode small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .tpc-imp-choice-icon { font-size: 18px; width: 34px; height: 34px; border-radius: 8px; background: #EEF3FB; color: var(--blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tpc-imp-backups { max-height: 46vh; overflow-y: auto; }
+        .tpc-imp-backup { justify-content: space-between; padding: 10px 12px; margin-bottom: 8px; }
+        .tpc-imp-backup-count { font-size: 12px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+        .tpc-imp-muted { color: var(--muted); font-size: 13px; margin: 6px 0; }
+        .tpc-imp-muted.small { font-size: 11.5px; margin-top: 2px; }
+        .tpc-imp-source { font-size: 12.5px; color: var(--muted); margin: -8px 0 12px; word-break: break-word; }
+        .tpc-imp-source strong { color: var(--ink); }
+        .tpc-imp-modes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .tpc-imp-mode { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+        .tpc-imp-mode input { margin-top: 3px; accent-color: var(--blue); }
+        .tpc-imp-mode strong { font-size: 13.5px; }
+        .tpc-imp-mode em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--green); }
+        .tpc-imp-mode.active { border-color: var(--blue); background: #F3F7FD; }
+        .tpc-imp-mode.danger.active { border-color: #C4302B; background: #FDF3F2; }
+        .tpc-imp-mode.danger.active input { accent-color: #C4302B; }
+        .tpc-imp-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .tpc-imp-stat { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #F2F4F7; color: var(--muted); }
+        .tpc-imp-stat.add { background: #E7F6EF; color: #12805C; }
+        .tpc-imp-stat.upd { background: #EEF3FB; color: var(--blue); }
+        .tpc-imp-stat.del.on { background: #FDECEC; color: #C4302B; }
+        .tpc-imp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 10px; }
+        .tpc-imp-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .tpc-imp-table td { padding: 6px 8px; border-bottom: 1px solid #F2F4F7; }
+        .tpc-imp-table tr.loss td { background: #FDF3F2; }
+        .tpc-imp-danger-text { color: #C4302B; font-weight: 700; }
+        .tpc-imp-alert { font-size: 12.5px; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; line-height: 1.45; }
+        .tpc-imp-alert.danger { background: #FDECEC; color: #9B2420; border: 1px solid #F5C2BF; }
+        .tpc-imp-alert.warn { background: var(--gold-bg); color: #7A5B12; }
+        .tpc-imp-alert.info { background: #F2F4F7; color: var(--muted); }
+        .tpc-imp-details { font-size: 12.5px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+        .tpc-imp-details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+        .tpc-imp-details.danger { border-color: #F5C2BF; }
+        .tpc-imp-details.danger summary { color: #C4302B; }
+        .tpc-imp-details ul { margin: 8px 0 2px; padding-left: 18px; max-height: 150px; overflow-y: auto; }
+        .tpc-imp-details li { margin-bottom: 3px; }
+        .tpc-imp-details li small { color: var(--muted); }
+        .tpc-imp-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--ink); margin-top: 6px; cursor: pointer; }
+        .tpc-imp-check input { margin-top: 2px; accent-color: var(--blue); }
+        .tpc-imp-confirm { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #9B2420; }
+        .tpc-imp-confirm .tpc-input { padding: 9px 10px; border: 1px solid #F5C2BF; border-radius: 7px; font-size: 13.5px; font-family: inherit; }
         .tpc-modal h3 { font-family: 'Sora', sans-serif; font-size: 17px; margin: 0 0 16px; color: var(--ink); }
         .tpc-form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
-        .tpc-form-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
-        .tpc-form-row .tpc-input, .tpc-form-row .tpc-select { width: 100%; padding: 9px 10px; font-size: 13.5px; }
+        .tpc-form-row label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+        .tpc-form-row .tpc-input, .tpc-form-row .tpc-select, .tpc-form-row textarea {
+          width: 100%; padding: 9px 10px; font-size: 13.5px; font-family: inherit;
+          border: 1px solid var(--border); border-radius: 7px; color: var(--ink); resize: vertical;
+        }
+        .tpc-form-row textarea:focus { outline: none; border-color: var(--blue); }
         .tpc-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
         .tpc-btn-secondary-modal {
-          background: #fff; border: 1.5px solid var(--border); color: var(--ink); border-radius: 8px;
+          background: #fff; border: 1px solid var(--border); color: var(--ink); border-radius: 8px;
           padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
         .tpc-btn-primary {
@@ -619,27 +973,15 @@ export default function App() {
         }
 
         @media (max-width: 720px) {
-          .tpc-landing { padding: 24px 12px 16px; }
-          .tpc-landing-cards { flex-direction: column; align-items: stretch; }
-          .tpc-landing-card { min-width: 0; padding: 20px; }
-          .tpc-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-          .tpc-stat-card {
-            min-width: 0; min-height: 52px; padding: 8px 9px; border-radius: 8px;
-            flex-direction: column; align-items: center; justify-content: center; border: none; text-align: center;
-          }
-          .tpc-stat-card:hover { transform: none; }
-          .tpc-stat-card.active { box-shadow: 0 0 0 2px rgba(16,24,40,0.35); }
-          .tpc-stat-label { font-size: 10px; }
-          .tpc-stat-value { font-size: 20px; margin-top: 2px; }
+          .tpc-summary-card { margin-bottom: 5px; padding: 5px; }
+          .tpc-stats { flex-direction: row; gap: 6px; margin-bottom: 5px; }
+          .tpc-stat-card { min-width: 0; padding: 8px 8px 9px; }
+          .tpc-stat-label { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .tpc-stat-value { font-size: 16px; margin-top: 2px; }
 
-          .tpc-tabs { flex-wrap: nowrap; gap: 5px; margin-bottom: 12px; }
-          .tpc-tab {
-            flex: 1 1 0; min-width: 0; min-height: 40px; padding: 6px 4px; border: 1.5px solid var(--border); background: var(--surface);
-          }
-          .tpc-tab.active { border-color: var(--navy); background: #EEF1F8; }
-          .tpc-tab-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-tab-count { font-size: 8.5px; white-space: nowrap; }
-          .tpc-bar { margin-top: 5px; }
+          .tpc-tabs { gap: 6px; max-width: 100%; overflow-x: auto; padding-bottom: 2px; }
+          .tpc-tab { padding: 7px 10px; font-size: 12px; gap: 5px; }
+          .tpc-tab-count { font-size: 10px; padding: 1px 6px; }
 
           .tpc-body { padding: 14px; }
           .tpc-header {
@@ -651,12 +993,11 @@ export default function App() {
           .tpc-header-titles { min-width: 0; flex: 1 1 auto; overflow: hidden; }
           .tpc-header-titles .tpc-title,
           .tpc-header-titles .tpc-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .tpc-auth-box { width: auto; flex-shrink: 0; }
+          .tpc-auth-box { width: auto; flex-shrink: 0; flex-wrap: nowrap; min-width: 0; }
           .tpc-badge { padding: 5px 8px; font-size: 9px; gap: 5px; max-width: 110px; min-width: 0; }
-          .tpc-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-          .tpc-auth-box { flex-wrap: nowrap; min-width: 0; }
           .tpc-btn-login, .tpc-btn-logout { padding: 6px 10px; font-size: 10px; }
           .tpc-toolbar { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 6px; }
+          .tpc-btn-filter-toggle { width: 100%; justify-content: space-between; padding: 8px 12px; }
           .tpc-toolbar-toprow { display: flex; flex-direction: row; gap: 8px; width: 100%; }
           .tpc-toolbar-toprow .tpc-btn-filter-toggle,
           .tpc-toolbar-toprow .tpc-btn-secondary { flex: 1; width: auto; justify-content: center; padding: 8px 10px; }
@@ -665,14 +1006,33 @@ export default function App() {
           .tpc-filter-group .tpc-input { flex: 1; width: auto; padding: 5px 8px; }
           .tpc-btn-clear { align-self: flex-start; padding: 2px 4px; }
           .tpc-btn-add { width: 100%; padding: 8px 14px; }
-          .tpc-table-wrap { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-scroll { overflow: scroll; -webkit-overflow-scrolling: touch; }
+          .tpc-table-header { padding: 9px 14px; font-size: 12px; }
           table.tpc-table { min-width: 640px; }
           .tpc-table td.tpc-col-task, .tpc-table th.tpc-col-task { white-space: nowrap; min-width: auto; }
+          .tpc-landing { padding: 32px 12px 16px; }
+          .tpc-landing-cards { flex-direction: column; max-width: 320px; margin: 0 auto; }
         }
 
         @media (max-width: 420px) {
-          .tpc-stat-card { padding: 6px 7px; min-height: 48px; }
           .tpc-modal { padding: 18px; }
+        }
+        /* Bóng nổi cho thẻ, nút và khung */
+        .tpc-summary-card, .tpc-toolbar, .tpc-table-wrap {
+          box-shadow: 0 4px 12px rgba(16,24,40,0.10), 0 1px 3px rgba(16,24,40,0.06);
+        }
+        .tpc-stat-card {
+          background: #F1ECE0; border-color: #DDD5C3;
+          box-shadow: 0 3px 8px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .tpc-stat-card:hover { box-shadow: 0 5px 12px rgba(16,24,40,0.16), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-stat-card.active { box-shadow: 0 6px 14px rgba(16,24,40,0.2), inset 0 1px 0 rgba(255,255,255,0.7); }
+        .tpc-tab:not(.active) {
+          background: #fff;
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), 0 1px 2px rgba(16,24,40,0.06);
+        }
+        .tpc-btn-filter-toggle, .tpc-btn-secondary {
+          box-shadow: 0 2px 6px rgba(16,24,40,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
         }
       `}</style>
 
@@ -715,7 +1075,7 @@ export default function App() {
                   className={`tpc-landing-card tpc-landing-card-${g.key}`}
                   onClick={() => chooseViewerName(g.key)}
                 >
-                  {g.label}
+                  <div className="tpc-landing-card-header">{g.label}</div>
                 </button>
               ))}
             </div>
@@ -730,72 +1090,69 @@ export default function App() {
           </div>
         )}
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
-        {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
-
-        <div className="tpc-stats">
-          <button
-            className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
-            onClick={() => setActiveStatus("incomplete")}
-          >
-            <div>
-              <div className="tpc-stat-label">Công việc</div>
-              <div className="tpc-stat-value tpc-num">{incompleteCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
-            <div>
-              <div className="tpc-stat-label">Hoàn thành</div>
-              <div className="tpc-stat-value tpc-num">{completedCount}</div>
-            </div>
-          </button>
-          <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
-            <div>
-              <div className="tpc-stat-label">Quá hạn</div>
-              <div className="tpc-stat-value tpc-num">{overdueCount}</div>
-            </div>
-          </button>
-        </div>
-
-        {isLockedViewer ? (
-          <div className="tpc-locked-group-label">
-            Nhóm: <strong>{groupLabel(viewerName)}</strong>
-          </div>
-        ) : (
-          <div className="tpc-tabs">
-            <button className={`tpc-tab ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
-              <div className="tpc-tab-name">Tất cả nhóm</div>
-              <div className="tpc-tab-count">
-                {tasks.filter((t) => getStatus(t) !== "completed").length} công việc
-              </div>
-            </button>
-            {GROUPS.map((g) => {
-              const w = workload(g.key);
-              return (
-                <button key={g.key} className={`tpc-tab ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
-                  <div className="tpc-tab-name">{g.label}</div>
-                  <div className="tpc-tab-count">{w.o + w.p} công việc</div>
-                  {w.total > 0 && (
-                    <div className="tpc-bar">
-                      <span style={{ width: `${(w.p / w.total) * 100}%`, background: "#D8B65A" }} />
-                      <span style={{ width: `${(w.c / w.total) * 100}%`, background: "var(--green)" }} />
-                      <span style={{ width: `${(w.o / w.total) * 100}%`, background: "var(--red)" }} />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+        {importInfo && (
+          <div className="tpc-banner tpc-banner-info tpc-banner-row">
+            <span>{importInfo}</span>
+            <span className="tpc-banner-actions">
+              {undoSnap && isSupervisor && (
+                <button className="tpc-btn-undo" onClick={undoImport} disabled={saving}>↶ Hoàn tác</button>
+              )}
+              <button className="tpc-banner-close" title="Đóng" onClick={() => { setImportInfo(""); setUndoSnap(null); }}>✕</button>
+            </span>
           </div>
         )}
+
+        <div className="tpc-summary-card">
+          <div className="tpc-stats">
+            <button
+              className={`tpc-stat-card tpc-stat-total ${activeStatus === "incomplete" ? "active" : ""}`}
+              onClick={() => setActiveStatus("incomplete")}
+            >
+              <span className="tpc-stat-label">Công việc</span>
+              <span className="tpc-stat-value tpc-num">{incompleteCount}</span>
+            </button>
+            <button className={`tpc-stat-card tpc-stat-completed ${activeStatus === "completed" ? "active" : ""}`} onClick={() => setActiveStatus("completed")}>
+              <span className="tpc-stat-label">Hoàn thành</span>
+              <span className="tpc-stat-value tpc-num">{completedCount}</span>
+            </button>
+            <button className={`tpc-stat-card tpc-stat-overdue ${activeStatus === "overdue" ? "active" : ""}`} onClick={() => setActiveStatus("overdue")}>
+              <span className="tpc-stat-label">Quá hạn</span>
+              <span className="tpc-stat-value tpc-num">{overdueCount}</span>
+            </button>
+          </div>
+
+          {isLockedViewer ? (
+            <div className="tpc-locked-group-label">
+              Nhóm: <strong>{groupLabel(viewerName)}</strong>
+            </div>
+          ) : (
+            <div className="tpc-tabs">
+              <button className={`tpc-tab tpc-tab-ALL ${activeGroup === "ALL" ? "active" : ""}`} onClick={() => setActiveGroup("ALL")}>
+                Tất cả
+                <span className="tpc-tab-count">{tasks.filter((t) => getStatus(t) !== "completed").length}</span>
+              </button>
+              {ALL_GROUPS.map((g) => {
+                const w = workload(g.key);
+                return (
+                  <button key={g.key} className={`tpc-tab tpc-tab-${g.key} ${activeGroup === g.key ? "active" : ""}`} onClick={() => setActiveGroup(g.key)}>
+                    {g.label}
+                    <span className="tpc-tab-count">{w.o + w.p}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {(() => {
           const filterToggleBtn = (
             <button className="tpc-btn-filter-toggle" onClick={() => setShowFilters((v) => !v)}>
-              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{Object.values(filters).filter(Boolean).length}</span>}
+              ⚙ Bộ lọc {hasActiveFilters && <span className="tpc-filter-badge">{activeFilterCount}</span>}
               <span className="tpc-filter-caret">{showFilters ? "▲" : "▼"}</span>
             </button>
           );
           const csvBtn = (
-            <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
+            <button className="tpc-btn-secondary" title="Xuất toàn bộ công việc của tất cả các nhóm" onClick={() => exportAll(tasks)}>
               ⬇ Xuất CSV
             </button>
           );
@@ -815,6 +1172,10 @@ export default function App() {
           );
           const filterFields = showFilters && (
             <>
+              <div className="tpc-filter-group">
+                <label>Tên công việc</label>
+                <input type="search" className="tpc-input" placeholder="Nhập tên cần tìm" value={filters.tenCongViec} onChange={(e) => setFilters((f) => ({ ...f, tenCongViec: e.target.value }))} />
+              </div>
               <div className="tpc-filter-group">
                 <label>Ngày giao</label>
                 <input type="date" className="tpc-input" value={filters.ngayGiao} onChange={(e) => setFilters((f) => ({ ...f, ngayGiao: e.target.value }))} />
@@ -856,6 +1217,11 @@ export default function App() {
         })()}
 
         <div className="tpc-table-wrap">
+          <div className="tpc-table-header">
+            Danh sách công việc
+            <span className="tpc-table-header-count">{incompleteTasks.length + completedTasks.length}</span>
+          </div>
+          <div className="tpc-table-scroll">
           {incompleteTasks.length === 0 && completedTasks.length === 0 ? (
             <div className="tpc-empty">Không có công việc nào khớp với bộ lọc hiện tại.</div>
           ) : (
@@ -900,10 +1266,204 @@ export default function App() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
           </>
         )}
       </div>
+
+      {importState && isSupervisor && (
+        <div className="tpc-modal-overlay" onClick={() => !saving && setImportState(null)}>
+          <div className="tpc-modal tpc-modal-wide" onClick={(e) => e.stopPropagation()}>
+            {importState.step === "start" && (
+              <>
+                <h3>Nhập dữ liệu</h3>
+                {importState.error && <div className="tpc-imp-alert danger">{importState.error}</div>}
+                <button className="tpc-imp-choice" onClick={pickCsvFile}>
+                  <span className="tpc-imp-choice-icon">⬆</span>
+                  <span>
+                    <strong>Chọn file CSV</strong>
+                    <small>Xem trước kết quả và chọn cách nhập trước khi lưu.</small>
+                  </span>
+                </button>
+                <button className="tpc-imp-choice" onClick={openBackups}>
+                  <span className="tpc-imp-choice-icon">↺</span>
+                  <span>
+                    <strong>Khôi phục bản sao lưu</strong>
+                    <small>Máy chủ tự sao lưu trước mỗi lần nhập và định kỳ khi sửa.</small>
+                  </span>
+                </button>
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState(null)}>Đóng</button>
+                </div>
+              </>
+            )}
+
+            {importState.step === "backups" && (
+              <>
+                <h3>Khôi phục bản sao lưu</h3>
+                {importState.loading && <p className="tpc-imp-muted">Đang tải…</p>}
+                {importState.error && <div className="tpc-imp-alert danger">{importState.error}</div>}
+                {!importState.loading && importState.list && importState.list.length === 0 && !importState.error && (
+                  <p className="tpc-imp-muted">Chưa có bản sao lưu nào. Bản đầu tiên sẽ được tạo ở lần nhập hoặc lần sửa tiếp theo.</p>
+                )}
+                {!importState.loading && importState.list && importState.list.length > 0 && (
+                  <div className="tpc-imp-backups">
+                    {importState.list.map((b) => (
+                      <button key={b.key} className="tpc-imp-backup" onClick={() => pickBackup(b)}>
+                        <span>
+                          <strong>{formatDateTime(b.at)}</strong>
+                          <small>{b.reason === "import" ? "Trước khi nhập file" : b.reason === "restore" ? "Trước khi khôi phục / hoàn tác" : "Tự động khi sửa"}</small>
+                        </span>
+                        <span className="tpc-imp-backup-count">{b.count} việc</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState({ step: "start" })}>← Quay lại</button>
+                </div>
+              </>
+            )}
+
+            {importState.step === "preview" && !importPlan && <p className="tpc-imp-muted">Đang đọc dữ liệu…</p>}
+
+            {importState.step === "preview" && importPlan && (
+              <>
+                <h3>{importState.source === "backup" ? "Khôi phục bản sao lưu" : "Nhập file CSV"}</h3>
+                <p className="tpc-imp-source">
+                  <strong>{importState.sourceLabel}</strong> · {importState.imported.length} công việc
+                  {importState.errors.length > 0 && <> · <span className="tpc-imp-danger-text">{importState.errors.length} dòng lỗi bị bỏ qua</span></>}
+                </p>
+
+                {importState.source === "file" && (
+                  <div className="tpc-imp-modes">
+                    {["smart", "append", "replace"].map((m) => (
+                      <label key={m} className={`tpc-imp-mode${importState.mode === m ? " active" : ""}${m === "replace" ? " danger" : ""}`}>
+                        <input
+                          type="radio"
+                          name="import-mode"
+                          checked={importState.mode === m}
+                          onChange={() => setImportState((st) => ({ ...st, mode: m, confirmText: "" }))}
+                        />
+                        <span>
+                          <strong>{IMPORT_MODES[m].label}{m === "smart" && <em> · khuyên dùng</em>}</strong>
+                          <small>{IMPORT_MODES[m].short}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <div className="tpc-imp-stats">
+                  <span className="tpc-imp-stat add">+{importPlan.added.length} thêm mới</span>
+                  {importState.mode !== "append" && <span className="tpc-imp-stat upd">{importPlan.updated.length} cập nhật</span>}
+                  <span className="tpc-imp-stat same">{importPlan.unchanged.length} {importState.mode === "append" ? "đã có, giữ nguyên" : "không đổi"}</span>
+                  {importState.mode === "replace" && <span className={`tpc-imp-stat del${importPlan.removed.length ? " on" : ""}`}>−{importPlan.removed.length} bị xóa</span>}
+                </div>
+
+                <table className="tpc-imp-table">
+                  <thead>
+                    <tr><th>Nhóm</th><th>Hiện có</th><th>Trong file</th><th>Sau khi nhập</th></tr>
+                  </thead>
+                  <tbody>
+                    {importPlan.rows.filter((r) => r.before || r.inFile || r.after).map((r) => (
+                      <tr key={r.key} className={r.after < r.before ? "loss" : ""}>
+                        <td>{r.label}</td>
+                        <td>{r.before}</td>
+                        <td>{r.inFile}</td>
+                        <td><strong>{r.after}</strong>{r.after < r.before && <span className="tpc-imp-danger-text"> (−{r.before - r.after})</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {importPlan.missingGroups.length > 0 && (
+                  <div className={`tpc-imp-alert ${importState.mode === "replace" ? "danger" : "warn"}`}>
+                    {importState.source === "backup" ? "Bản sao lưu" : "File"} không có công việc nào của nhóm{" "}
+                    <strong>{importPlan.missingGroups.map((r) => `${r.label} (${r.before} việc)`).join(", ")}</strong>.
+                    {importState.mode === "replace"
+                      ? " Nếu Thay thế, toàn bộ công việc của các nhóm này sẽ bị xóa. Có thể file được xuất khi đang xem một nhóm."
+                      : " Các công việc này vẫn được giữ nguyên."}
+                  </div>
+                )}
+                {importState.source === "file" && !importState.hasIdColumn && (
+                  <div className="tpc-imp-alert info">File xuất từ phiên bản cũ (không có cột ID): công việc được ghép theo tên + nhóm + ngày giao.</div>
+                )}
+                {importPlan.duplicatesInFile > 0 && (
+                  <div className="tpc-imp-alert info">Bỏ qua {importPlan.duplicatesInFile} dòng trùng lặp trong file.</div>
+                )}
+
+                {importPlan.removed.length > 0 && (
+                  <details className="tpc-imp-details danger" open={importPlan.removed.length <= 5}>
+                    <summary>{importPlan.removed.length} công việc sẽ bị xóa</summary>
+                    <ul>{importPlan.removed.map((t) => <li key={t.id}>{t.task} <small>· {groupLabel(t.group)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importPlan.updated.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importPlan.updated.length} công việc sẽ được cập nhật</summary>
+                    <ul>{importPlan.updated.map((u) => <li key={u.before.id}>{u.after.task} <small>· đổi {describeChanges(u.changed)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importPlan.added.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importPlan.added.length} công việc sẽ được thêm</summary>
+                    <ul>{importPlan.added.map((t) => <li key={t.id}>{t.task} <small>· {groupLabel(t.group)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importState.errors.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importState.errors.length} dòng lỗi bị bỏ qua</summary>
+                    <ul>{importState.errors.map((er, i) => <li key={i}>{er}</li>)}</ul>
+                  </details>
+                )}
+
+                <label className="tpc-imp-check">
+                  <input
+                    type="checkbox"
+                    checked={importState.backupLocal}
+                    onChange={(e) => setImportState((st) => ({ ...st, backupLocal: e.target.checked }))}
+                  />
+                  Tải bản sao lưu danh sách hiện tại ({importState.base.length} việc) về máy trước khi lưu
+                </label>
+                <p className="tpc-imp-muted small">Máy chủ cũng tự lưu một bản sao trước khi ghi. Sau khi nhập có nút Hoàn tác.</p>
+
+                {needsTypedConfirm && (
+                  <div className="tpc-imp-confirm">
+                    <label>Thao tác này sẽ <strong>xóa {importPlan.removed.length} công việc</strong>. Gõ <strong>THAY THẾ</strong> để xác nhận:</label>
+                    <input
+                      className="tpc-input"
+                      value={importState.confirmText}
+                      placeholder="THAY THẾ"
+                      onChange={(e) => setImportState((st) => ({ ...st, confirmText: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                {importState.applyError && <div className="tpc-imp-alert danger">{importState.applyError}</div>}
+
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState(null)} disabled={saving}>Hủy</button>
+                  <button
+                    className={`tpc-btn-primary${importState.mode === "replace" ? " tpc-btn-danger" : ""}`}
+                    onClick={applyImport}
+                    disabled={saving || !typedOk || nothingToChange}
+                  >
+                    {saving
+                      ? "Đang lưu…"
+                      : nothingToChange
+                        ? "Không có gì thay đổi"
+                        : importState.source === "backup"
+                          ? "Khôi phục"
+                          : `${IMPORT_MODES[importState.mode].label}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showForm && isSupervisor && (
         <div className="tpc-modal-overlay" onClick={closeForm}>
@@ -914,7 +1474,7 @@ export default function App() {
               <label>Nhóm phụ trách</label>
               <select className="tpc-select" value={form.group} onChange={(e) => setForm((f) => ({ ...f, group: e.target.value }))}>
                 <option value="">— Chọn nhóm —</option>
-                {GROUPS.map((g) => (
+                {ALL_GROUPS.map((g) => (
                   <option key={g.key} value={g.key}>{g.label}</option>
                 ))}
               </select>
@@ -923,6 +1483,16 @@ export default function App() {
             <div className="tpc-form-row">
               <label>Công việc</label>
               <input className="tpc-input" placeholder="Nhập tên công việc" value={form.task} onChange={(e) => setForm((f) => ({ ...f, task: e.target.value }))} />
+            </div>
+
+            <div className="tpc-form-row">
+              <label>Mô tả công việc (không bắt buộc)</label>
+              <textarea
+                rows={3}
+                placeholder="Ghi chú chi tiết, hướng dẫn thêm cho công việc này..."
+                value={form.moTa}
+                onChange={(e) => setForm((f) => ({ ...f, moTa: e.target.value }))}
+              />
             </div>
 
             <div className="tpc-form-row">

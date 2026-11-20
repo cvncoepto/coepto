@@ -1,7 +1,5 @@
-// Đọc lại đúng định dạng CSV do exportCsv.js xuất ra, chuyển về danh sách công việc.
-
 function parseCsv(text) {
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // bỏ BOM nếu có
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const rows = [];
   let row = [];
   let field = "";
@@ -26,7 +24,7 @@ function parseCsv(text) {
       row.push(field);
       field = "";
     } else if (char === "\r") {
-      // bỏ qua, xử lý ở \n
+      // bỏ qua
     } else if (char === "\n") {
       row.push(field);
       field = "";
@@ -51,11 +49,6 @@ function parseVNDate(str) {
   return `${y}-${mo}-${d}`;
 }
 
-/**
- * @param {string} text - nội dung file CSV
- * @param {{ groups: {key:string,label:string}[], genId: () => string }} opts
- * @returns {{ tasks: object[], errors: string[] }}
- */
 export function importTasksFromCsv(text, { groups, genId }) {
   const rows = parseCsv(text);
   if (rows.length < 2) {
@@ -65,11 +58,13 @@ export function importTasksFromCsv(text, { groups, genId }) {
   const header = rows[0].map((h) => h.trim());
   const idx = (name) => header.indexOf(name);
   const iTask = idx("Công việc");
+  const iMoTa = idx("Mô tả");
   const iGroup = idx("Nhóm");
   const iGiao = idx("Ngày giao");
   const iHtdk = idx("Hạn hoàn thành");
   const iHt = idx("Ngày hoàn thành");
   const iBoi = idx("Hoàn thành bởi");
+  const iId = idx("ID"); // chỉ có ở file xuất từ phiên bản mới; file cũ không có cũng được
 
   if (iTask === -1 || iGroup === -1 || iGiao === -1 || iHtdk === -1) {
     return {
@@ -80,6 +75,7 @@ export function importTasksFromCsv(text, { groups, genId }) {
 
   const tasks = [];
   const errors = [];
+  const seenIds = new Set();
 
   rows.slice(1).forEach((r, i) => {
     const rowNum = i + 2;
@@ -103,11 +99,19 @@ export function importTasksFromCsv(text, { groups, genId }) {
     const ngayHoanThanh = iHt !== -1 ? parseVNDate(r[iHt]) : "";
     const hoanThanhBoiRaw = iBoi !== -1 ? (r[iBoi] || "").trim() : "";
     const hoanThanhBoi = hoanThanhBoiRaw === "—" ? "" : hoanThanhBoiRaw;
+    const moTa = iMoTa !== -1 ? (r[iMoTa] || "").trim() : "";
+
+    // Giữ ID trong file (để ghép đúng công việc khi Gộp); trùng ID trong file thì tạo ID mới
+    const fileId = iId !== -1 ? (r[iId] || "").trim() : "";
+    const hasFileId = Boolean(fileId) && !seenIds.has(fileId);
+    if (hasFileId) seenIds.add(fileId);
 
     tasks.push({
-      id: genId(),
+      id: hasFileId ? fileId : genId(),
+      fromFileId: hasFileId,
       group: groupObj.key,
       task: taskName,
+      moTa,
       ngayGiao,
       ngayHoanThanhDuKien,
       ngayHoanThanh,
@@ -115,5 +119,5 @@ export function importTasksFromCsv(text, { groups, genId }) {
     });
   });
 
-  return { tasks, errors };
+  return { tasks, errors, hasIdColumn: iId !== -1 };
 }
