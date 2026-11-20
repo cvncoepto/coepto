@@ -64,6 +64,7 @@ export function importTasksFromCsv(text, { groups, genId }) {
   const iHtdk = idx("Hạn hoàn thành");
   const iHt = idx("Ngày hoàn thành");
   const iBoi = idx("Hoàn thành bởi");
+  const iId = idx("ID"); // chỉ có ở file xuất từ phiên bản mới; file cũ không có cũng được
 
   if (iTask === -1 || iGroup === -1 || iGiao === -1 || iHtdk === -1) {
     return {
@@ -74,6 +75,7 @@ export function importTasksFromCsv(text, { groups, genId }) {
 
   const tasks = [];
   const errors = [];
+  const seenIds = new Set();
 
   rows.slice(1).forEach((r, i) => {
     const rowNum = i + 2;
@@ -99,8 +101,14 @@ export function importTasksFromCsv(text, { groups, genId }) {
     const hoanThanhBoi = hoanThanhBoiRaw === "—" ? "" : hoanThanhBoiRaw;
     const moTa = iMoTa !== -1 ? (r[iMoTa] || "").trim() : "";
 
+    // Giữ ID trong file (để ghép đúng công việc khi Gộp); trùng ID trong file thì tạo ID mới
+    const fileId = iId !== -1 ? (r[iId] || "").trim() : "";
+    const hasFileId = Boolean(fileId) && !seenIds.has(fileId);
+    if (hasFileId) seenIds.add(fileId);
+
     tasks.push({
-      id: genId(),
+      id: hasFileId ? fileId : genId(),
+      fromFileId: hasFileId,
       group: groupObj.key,
       task: taskName,
       moTa,
@@ -111,5 +119,5 @@ export function importTasksFromCsv(text, { groups, genId }) {
     });
   });
 
-  return { tasks, errors };
+  return { tasks, errors, hasIdColumn: iId !== -1 };
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { initIdentity, openLogin, logout, getRoles, getDisplayName } from "./identity";
-import { fetchTasks, replaceTasks, setTasksComplete } from "./api";
+import { fetchTasks, replaceTasks, setTasksComplete, listBackups, fetchBackup } from "./api";
 import { exportTasksToCsv } from "./exportCsv";
 import { importTasksFromCsv } from "./importCsv";
+import { IMPORT_MODES, computeImportPlan, groupSummary, describeChanges, normalizeConfirm } from "./importMerge";
 
 const GROUPS = [
   { key: "CHUC", label: "CHỨC" },
@@ -29,6 +30,12 @@ function formatDate(iso) {
   if (!iso) return "—";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())} ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 function getStatus(task) {
   if (task.ngayHoanThanh) return "completed";
@@ -168,6 +175,10 @@ export default function App() {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [importInfo, setImportInfo] = useState("");
   const csvFileInputRef = useRef(null);
+  // Màn hình nhập: null | { step: "start" | "backups" | "preview", ... }
+  const [importState, setImportState] = useState(null);
+  // Bản chụp danh sách ngay trước lần nhập gần nhất, để Hoàn tác
+  const [undoSnap, setUndoSnap] = useState(null);
 
   const isLockedViewer = !isSupervisor && !!viewerName;
   useEffect(() => {
@@ -327,11 +338,31 @@ export default function App() {
     }
   };
 
+  // ===== Nhập dữ liệu =====
+  const exportAll = (list, filePrefix) =>
+    exportTasksToCsv(list, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate, {
+      groupOrder: ALL_GROUPS.map((g) => g.key),
+      ...(filePrefix ? { filePrefix } : {}),
+    });
+
+  // Luôn lấy danh sách mới nhất từ máy chủ làm gốc để so sánh (người khác có thể vừa sửa)
+  const loadFreshBase = async () => {
+    try {
+      const fresh = await fetchTasks();
+      if (Array.isArray(fresh)) return fresh;
+    } catch {
+      /* dùng dữ liệu đang hiển thị */
+    }
+    return tasks;
+  };
+
   const handleImportCsvClick = () => {
     setSaveError("");
     setImportInfo("");
-    csvFileInputRef.current?.click();
+    setImportState({ step: "start" });
   };
+
+  const pickCsvFile = () => csvFileInputRef.current?.click();
 
   const handleImportCsvFile = async (e) => {
     const file = e.target.files?.[0];
@@ -339,32 +370,110 @@ export default function App() {
     if (!file) return;
 
     const text = await file.text();
-    const { tasks: importedTasks, errors } = importTasksFromCsv(text, { groups: ALL_GROUPS, genId });
-
+    const { tasks: importedTasks, errors, hasIdColumn } = importTasksFromCsv(text, { groups: ALL_GROUPS, genId });
     if (importedTasks.length === 0) {
-      setSaveError(errors[0] || "Không đọc được công việc nào hợp lệ từ file này.");
+      setImportState({ step: "start", error: errors[0] || "Không đọc được công việc nào hợp lệ từ file này." });
       return;
     }
+    setImportState({ step: "preview", loadingBase: true });
+    const base = await loadFreshBase();
+    setImportState({
+      step: "preview",
+      source: "file",
+      sourceLabel: file.name,
+      imported: importedTasks,
+      errors,
+      hasIdColumn,
+      base,
+      mode: "smart",
+      confirmText: "",
+      backupLocal: true,
+    });
+  };
 
-    const confirmMsg =
-      `Tìm thấy ${importedTasks.length} công việc trong file.\n` +
-      `Việc nhập sẽ THAY THẾ toàn bộ danh sách hiện tại (${tasks.length} công việc) bằng dữ liệu từ file.\n\n` +
-      `Bạn có chắc chắn muốn tiếp tục?`;
-    if (!window.confirm(confirmMsg)) return;
+  const openBackups = async () => {
+    setImportState({ step: "backups", loading: true });
+    try {
+      const list = await listBackups();
+      setImportState({ step: "backups", list });
+    } catch (err) {
+      setImportState({ step: "backups", list: [], error: err.message });
+    }
+  };
 
+  const pickBackup = async (b) => {
+    setImportState({ step: "backups", loading: true });
+    try {
+      const [data, base] = await Promise.all([fetchBackup(b.key), loadFreshBase()]);
+      setImportState({
+        step: "preview",
+        source: "backup",
+        sourceLabel: `Bản sao lưu lúc ${formatDateTime(b.at)}`,
+        imported: data.map((t) => ({ ...t, fromFileId: true })),
+        errors: [],
+        hasIdColumn: true,
+        base,
+        mode: "replace",
+        confirmText: "",
+        backupLocal: true,
+      });
+    } catch (err) {
+      setImportState({ step: "backups", list: [], error: err.message });
+    }
+  };
+
+  const importPlan = useMemo(() => {
+    if (importState?.step !== "preview" || !importState.imported) return null;
+    const plan = computeImportPlan(importState.base, importState.imported, importState.mode);
+    const summary = groupSummary(importState.base, importState.imported, plan.result, ALL_GROUPS);
+    return { ...plan, ...summary };
+  }, [importState]);
+
+  const needsTypedConfirm = Boolean(importPlan && importPlan.removed.length > 0);
+  const typedOk = !needsTypedConfirm || normalizeConfirm(importState?.confirmText) === "THAY THE";
+  const nothingToChange = Boolean(importPlan) && importPlan.added.length + importPlan.updated.length + importPlan.removed.length === 0;
+
+  const applyImport = async () => {
+    if (!importPlan || !typedOk || nothingToChange) return;
+    const st = importState;
     setSaving(true);
     setSaveError("");
     try {
-      const saved = await replaceTasks(importedTasks);
+      let backupNote = "";
+      if (st.backupLocal && st.base.length > 0) {
+        const { fileName } = exportAll(st.base, "sao-luu-truoc-khi-nhap");
+        backupNote = ` Đã tải bản sao lưu về máy: ${fileName}.`;
+      }
+      const saved = await replaceTasks(importPlan.result, st.source === "backup" ? "restore" : "import");
       setTasks(saved);
       setUsingDemoData(false);
-      if (errors.length > 0) {
-        setImportInfo(`Đã nhập ${importedTasks.length} công việc. Bỏ qua ${errors.length} dòng lỗi: ${errors.slice(0, 3).join(" ")}${errors.length > 3 ? "…" : ""}`);
-      } else {
-        setImportInfo(`Đã nhập thành công ${importedTasks.length} công việc từ file.`);
-      }
+      setUndoSnap({ tasks: st.base, at: Date.now() });
+      const parts = [];
+      if (importPlan.added.length) parts.push(`thêm ${importPlan.added.length}`);
+      if (importPlan.updated.length) parts.push(`cập nhật ${importPlan.updated.length}`);
+      if (importPlan.removed.length) parts.push(`xóa ${importPlan.removed.length}`);
+      const what = st.source === "backup" ? "Đã khôi phục bản sao lưu" : `Đã nhập file (${IMPORT_MODES[st.mode].label})`;
+      setImportInfo(`${what}: ${parts.join(", ")} công việc.${backupNote}${st.errors.length ? ` Bỏ qua ${st.errors.length} dòng lỗi.` : ""}`);
+      setImportState(null);
     } catch (err) {
-      setSaveError(err.message || "Nhập dữ liệu thất bại.");
+      setImportState((cur) => (cur ? { ...cur, applyError: err.message || "Nhập dữ liệu thất bại." } : cur));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const undoImport = async () => {
+    if (!undoSnap) return;
+    if (!window.confirm("Đưa danh sách về đúng như trước lần nhập vừa rồi?\nCác thay đổi làm sau lần nhập (nếu có) cũng sẽ bị bỏ.")) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const saved = await replaceTasks(undoSnap.tasks, "restore");
+      setTasks(saved);
+      setUndoSnap(null);
+      setImportInfo("Đã hoàn tác lần nhập. Danh sách đã trở lại như trước khi nhập.");
+    } catch (err) {
+      setSaveError(err.message || "Hoàn tác thất bại.");
     } finally {
       setSaving(false);
     }
@@ -789,6 +898,62 @@ export default function App() {
           justify-content: center; z-index: 50; padding: 20px;
         }
         .tpc-modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
+        .tpc-modal-wide { max-width: 560px; }
+        .tpc-banner-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .tpc-banner-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tpc-btn-undo { background: #fff; border: 1px solid #D9C48F; color: #7A5B12; border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .tpc-banner-close { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; opacity: .6; padding: 2px 4px; }
+        .tpc-btn-danger { background: #C4302B; }
+        .tpc-btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+        .tpc-imp-choice, .tpc-imp-backup {
+          display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff;
+          border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+          font-family: inherit; color: var(--ink); box-shadow: 0 2px 6px rgba(16,24,40,0.08);
+        }
+        .tpc-imp-choice:hover, .tpc-imp-backup:hover { border-color: var(--blue); }
+        .tpc-imp-choice strong, .tpc-imp-backup strong { display: block; font-size: 13.5px; }
+        .tpc-imp-choice small, .tpc-imp-backup small, .tpc-imp-mode small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .tpc-imp-choice-icon { font-size: 18px; width: 34px; height: 34px; border-radius: 8px; background: #EEF3FB; color: var(--blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tpc-imp-backups { max-height: 46vh; overflow-y: auto; }
+        .tpc-imp-backup { justify-content: space-between; padding: 10px 12px; margin-bottom: 8px; }
+        .tpc-imp-backup-count { font-size: 12px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+        .tpc-imp-muted { color: var(--muted); font-size: 13px; margin: 6px 0; }
+        .tpc-imp-muted.small { font-size: 11.5px; margin-top: 2px; }
+        .tpc-imp-source { font-size: 12.5px; color: var(--muted); margin: -8px 0 12px; word-break: break-word; }
+        .tpc-imp-source strong { color: var(--ink); }
+        .tpc-imp-modes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .tpc-imp-mode { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+        .tpc-imp-mode input { margin-top: 3px; accent-color: var(--blue); }
+        .tpc-imp-mode strong { font-size: 13.5px; }
+        .tpc-imp-mode em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--green); }
+        .tpc-imp-mode.active { border-color: var(--blue); background: #F3F7FD; }
+        .tpc-imp-mode.danger.active { border-color: #C4302B; background: #FDF3F2; }
+        .tpc-imp-mode.danger.active input { accent-color: #C4302B; }
+        .tpc-imp-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .tpc-imp-stat { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #F2F4F7; color: var(--muted); }
+        .tpc-imp-stat.add { background: #E7F6EF; color: #12805C; }
+        .tpc-imp-stat.upd { background: #EEF3FB; color: var(--blue); }
+        .tpc-imp-stat.del.on { background: #FDECEC; color: #C4302B; }
+        .tpc-imp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 10px; }
+        .tpc-imp-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .tpc-imp-table td { padding: 6px 8px; border-bottom: 1px solid #F2F4F7; }
+        .tpc-imp-table tr.loss td { background: #FDF3F2; }
+        .tpc-imp-danger-text { color: #C4302B; font-weight: 700; }
+        .tpc-imp-alert { font-size: 12.5px; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; line-height: 1.45; }
+        .tpc-imp-alert.danger { background: #FDECEC; color: #9B2420; border: 1px solid #F5C2BF; }
+        .tpc-imp-alert.warn { background: var(--gold-bg); color: #7A5B12; }
+        .tpc-imp-alert.info { background: #F2F4F7; color: var(--muted); }
+        .tpc-imp-details { font-size: 12.5px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+        .tpc-imp-details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+        .tpc-imp-details.danger { border-color: #F5C2BF; }
+        .tpc-imp-details.danger summary { color: #C4302B; }
+        .tpc-imp-details ul { margin: 8px 0 2px; padding-left: 18px; max-height: 150px; overflow-y: auto; }
+        .tpc-imp-details li { margin-bottom: 3px; }
+        .tpc-imp-details li small { color: var(--muted); }
+        .tpc-imp-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--ink); margin-top: 6px; cursor: pointer; }
+        .tpc-imp-check input { margin-top: 2px; accent-color: var(--blue); }
+        .tpc-imp-confirm { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #9B2420; }
+        .tpc-imp-confirm .tpc-input { padding: 9px 10px; border: 1px solid #F5C2BF; border-radius: 7px; font-size: 13.5px; font-family: inherit; }
         .tpc-modal h3 { font-family: 'Sora', sans-serif; font-size: 17px; margin: 0 0 16px; color: var(--ink); }
         .tpc-form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
         .tpc-form-row label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
@@ -925,7 +1090,17 @@ export default function App() {
           </div>
         )}
         {saveError && <div className="tpc-banner tpc-banner-error">{saveError}</div>}
-        {importInfo && <div className="tpc-banner tpc-banner-info">{importInfo}</div>}
+        {importInfo && (
+          <div className="tpc-banner tpc-banner-info tpc-banner-row">
+            <span>{importInfo}</span>
+            <span className="tpc-banner-actions">
+              {undoSnap && isSupervisor && (
+                <button className="tpc-btn-undo" onClick={undoImport} disabled={saving}>↶ Hoàn tác</button>
+              )}
+              <button className="tpc-banner-close" title="Đóng" onClick={() => { setImportInfo(""); setUndoSnap(null); }}>✕</button>
+            </span>
+          </div>
+        )}
 
         <div className="tpc-summary-card">
           <div className="tpc-stats">
@@ -977,7 +1152,7 @@ export default function App() {
             </button>
           );
           const csvBtn = (
-            <button className="tpc-btn-secondary" onClick={() => exportTasksToCsv(filteredTasks, groupLabel, (t) => STATUS_META[getStatus(t)], formatDate)}>
+            <button className="tpc-btn-secondary" title="Xuất toàn bộ công việc của tất cả các nhóm" onClick={() => exportAll(tasks)}>
               ⬇ Xuất CSV
             </button>
           );
@@ -1096,6 +1271,199 @@ export default function App() {
           </>
         )}
       </div>
+
+      {importState && isSupervisor && (
+        <div className="tpc-modal-overlay" onClick={() => !saving && setImportState(null)}>
+          <div className="tpc-modal tpc-modal-wide" onClick={(e) => e.stopPropagation()}>
+            {importState.step === "start" && (
+              <>
+                <h3>Nhập dữ liệu</h3>
+                {importState.error && <div className="tpc-imp-alert danger">{importState.error}</div>}
+                <button className="tpc-imp-choice" onClick={pickCsvFile}>
+                  <span className="tpc-imp-choice-icon">⬆</span>
+                  <span>
+                    <strong>Chọn file CSV</strong>
+                    <small>Xem trước kết quả và chọn cách nhập trước khi lưu.</small>
+                  </span>
+                </button>
+                <button className="tpc-imp-choice" onClick={openBackups}>
+                  <span className="tpc-imp-choice-icon">↺</span>
+                  <span>
+                    <strong>Khôi phục bản sao lưu</strong>
+                    <small>Máy chủ tự sao lưu trước mỗi lần nhập và định kỳ khi sửa.</small>
+                  </span>
+                </button>
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState(null)}>Đóng</button>
+                </div>
+              </>
+            )}
+
+            {importState.step === "backups" && (
+              <>
+                <h3>Khôi phục bản sao lưu</h3>
+                {importState.loading && <p className="tpc-imp-muted">Đang tải…</p>}
+                {importState.error && <div className="tpc-imp-alert danger">{importState.error}</div>}
+                {!importState.loading && importState.list && importState.list.length === 0 && !importState.error && (
+                  <p className="tpc-imp-muted">Chưa có bản sao lưu nào. Bản đầu tiên sẽ được tạo ở lần nhập hoặc lần sửa tiếp theo.</p>
+                )}
+                {!importState.loading && importState.list && importState.list.length > 0 && (
+                  <div className="tpc-imp-backups">
+                    {importState.list.map((b) => (
+                      <button key={b.key} className="tpc-imp-backup" onClick={() => pickBackup(b)}>
+                        <span>
+                          <strong>{formatDateTime(b.at)}</strong>
+                          <small>{b.reason === "import" ? "Trước khi nhập file" : b.reason === "restore" ? "Trước khi khôi phục / hoàn tác" : "Tự động khi sửa"}</small>
+                        </span>
+                        <span className="tpc-imp-backup-count">{b.count} việc</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState({ step: "start" })}>← Quay lại</button>
+                </div>
+              </>
+            )}
+
+            {importState.step === "preview" && !importPlan && <p className="tpc-imp-muted">Đang đọc dữ liệu…</p>}
+
+            {importState.step === "preview" && importPlan && (
+              <>
+                <h3>{importState.source === "backup" ? "Khôi phục bản sao lưu" : "Nhập file CSV"}</h3>
+                <p className="tpc-imp-source">
+                  <strong>{importState.sourceLabel}</strong> · {importState.imported.length} công việc
+                  {importState.errors.length > 0 && <> · <span className="tpc-imp-danger-text">{importState.errors.length} dòng lỗi bị bỏ qua</span></>}
+                </p>
+
+                {importState.source === "file" && (
+                  <div className="tpc-imp-modes">
+                    {["smart", "append", "replace"].map((m) => (
+                      <label key={m} className={`tpc-imp-mode${importState.mode === m ? " active" : ""}${m === "replace" ? " danger" : ""}`}>
+                        <input
+                          type="radio"
+                          name="import-mode"
+                          checked={importState.mode === m}
+                          onChange={() => setImportState((st) => ({ ...st, mode: m, confirmText: "" }))}
+                        />
+                        <span>
+                          <strong>{IMPORT_MODES[m].label}{m === "smart" && <em> · khuyên dùng</em>}</strong>
+                          <small>{IMPORT_MODES[m].short}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <div className="tpc-imp-stats">
+                  <span className="tpc-imp-stat add">+{importPlan.added.length} thêm mới</span>
+                  {importState.mode !== "append" && <span className="tpc-imp-stat upd">{importPlan.updated.length} cập nhật</span>}
+                  <span className="tpc-imp-stat same">{importPlan.unchanged.length} {importState.mode === "append" ? "đã có, giữ nguyên" : "không đổi"}</span>
+                  {importState.mode === "replace" && <span className={`tpc-imp-stat del${importPlan.removed.length ? " on" : ""}`}>−{importPlan.removed.length} bị xóa</span>}
+                </div>
+
+                <table className="tpc-imp-table">
+                  <thead>
+                    <tr><th>Nhóm</th><th>Hiện có</th><th>Trong file</th><th>Sau khi nhập</th></tr>
+                  </thead>
+                  <tbody>
+                    {importPlan.rows.filter((r) => r.before || r.inFile || r.after).map((r) => (
+                      <tr key={r.key} className={r.after < r.before ? "loss" : ""}>
+                        <td>{r.label}</td>
+                        <td>{r.before}</td>
+                        <td>{r.inFile}</td>
+                        <td><strong>{r.after}</strong>{r.after < r.before && <span className="tpc-imp-danger-text"> (−{r.before - r.after})</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {importPlan.missingGroups.length > 0 && (
+                  <div className={`tpc-imp-alert ${importState.mode === "replace" ? "danger" : "warn"}`}>
+                    {importState.source === "backup" ? "Bản sao lưu" : "File"} không có công việc nào của nhóm{" "}
+                    <strong>{importPlan.missingGroups.map((r) => `${r.label} (${r.before} việc)`).join(", ")}</strong>.
+                    {importState.mode === "replace"
+                      ? " Nếu Thay thế, toàn bộ công việc của các nhóm này sẽ bị xóa. Có thể file được xuất khi đang xem một nhóm."
+                      : " Các công việc này vẫn được giữ nguyên."}
+                  </div>
+                )}
+                {importState.source === "file" && !importState.hasIdColumn && (
+                  <div className="tpc-imp-alert info">File xuất từ phiên bản cũ (không có cột ID): công việc được ghép theo tên + nhóm + ngày giao.</div>
+                )}
+                {importPlan.duplicatesInFile > 0 && (
+                  <div className="tpc-imp-alert info">Bỏ qua {importPlan.duplicatesInFile} dòng trùng lặp trong file.</div>
+                )}
+
+                {importPlan.removed.length > 0 && (
+                  <details className="tpc-imp-details danger" open={importPlan.removed.length <= 5}>
+                    <summary>{importPlan.removed.length} công việc sẽ bị xóa</summary>
+                    <ul>{importPlan.removed.map((t) => <li key={t.id}>{t.task} <small>· {groupLabel(t.group)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importPlan.updated.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importPlan.updated.length} công việc sẽ được cập nhật</summary>
+                    <ul>{importPlan.updated.map((u) => <li key={u.before.id}>{u.after.task} <small>· đổi {describeChanges(u.changed)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importPlan.added.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importPlan.added.length} công việc sẽ được thêm</summary>
+                    <ul>{importPlan.added.map((t) => <li key={t.id}>{t.task} <small>· {groupLabel(t.group)}</small></li>)}</ul>
+                  </details>
+                )}
+                {importState.errors.length > 0 && (
+                  <details className="tpc-imp-details">
+                    <summary>{importState.errors.length} dòng lỗi bị bỏ qua</summary>
+                    <ul>{importState.errors.map((er, i) => <li key={i}>{er}</li>)}</ul>
+                  </details>
+                )}
+
+                <label className="tpc-imp-check">
+                  <input
+                    type="checkbox"
+                    checked={importState.backupLocal}
+                    onChange={(e) => setImportState((st) => ({ ...st, backupLocal: e.target.checked }))}
+                  />
+                  Tải bản sao lưu danh sách hiện tại ({importState.base.length} việc) về máy trước khi lưu
+                </label>
+                <p className="tpc-imp-muted small">Máy chủ cũng tự lưu một bản sao trước khi ghi. Sau khi nhập có nút Hoàn tác.</p>
+
+                {needsTypedConfirm && (
+                  <div className="tpc-imp-confirm">
+                    <label>Thao tác này sẽ <strong>xóa {importPlan.removed.length} công việc</strong>. Gõ <strong>THAY THẾ</strong> để xác nhận:</label>
+                    <input
+                      className="tpc-input"
+                      value={importState.confirmText}
+                      placeholder="THAY THẾ"
+                      onChange={(e) => setImportState((st) => ({ ...st, confirmText: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                {importState.applyError && <div className="tpc-imp-alert danger">{importState.applyError}</div>}
+
+                <div className="tpc-modal-actions">
+                  <button className="tpc-btn-secondary-modal" onClick={() => setImportState(null)} disabled={saving}>Hủy</button>
+                  <button
+                    className={`tpc-btn-primary${importState.mode === "replace" ? " tpc-btn-danger" : ""}`}
+                    onClick={applyImport}
+                    disabled={saving || !typedOk || nothingToChange}
+                  >
+                    {saving
+                      ? "Đang lưu…"
+                      : nothingToChange
+                        ? "Không có gì thay đổi"
+                        : importState.source === "backup"
+                          ? "Khôi phục"
+                          : `${IMPORT_MODES[importState.mode].label}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showForm && isSupervisor && (
         <div className="tpc-modal-overlay" onClick={closeForm}>
